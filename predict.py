@@ -17,7 +17,8 @@ import os
 
 from model import Unet_40k, Unet_160k
 from sphericalunet.utils.vtk import read_vtk, write_vtk, resample_label
-from sphericalunet.utils.utils import get_par_36_to_fs_vec
+# from sphericalunet.utils.utils import get_par_36_to_fs_vec
+from sphericalunet.utils.utils import get_par_fs_lookup_table
 from sphericalunet.utils.interp_numpy import resampleSphereSurf
 
 class BrainSphere(torch.utils.data.Dataset):
@@ -99,7 +100,8 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load(model_path))
     model.eval()
        
-    par_36_to_fs_vec = get_par_36_to_fs_vec()
+    # par_36_to_fs_vec = get_par_36_to_fs_vec()
+    par_36_to_fs_vec = get_par_fs_lookup_table()[0]
 
     template = read_vtk('neigh_indices/sphere_' + str(n_vertices) + '.vtk')
     if in_file is not None:
