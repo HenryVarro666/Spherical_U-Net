@@ -108,10 +108,14 @@ if __name__ == "__main__":
         orig_surf = read_vtk(in_file)
         curv_temp = orig_surf['curv']
         if len(curv_temp) != n_vertices:
-            sucu = resampleSphereSurf(orig_surf['vertices'], template['vertices'], 
-                                      np.concatenate((orig_surf['sulc'][:,np.newaxis], 
+            # sucu = resampleSphereSurf(orig_surf['vertices'], template['vertices'], 
+            #                           np.concatenate((orig_surf['sulc'][:,np.newaxis], 
+            #                                           orig_surf['curv'][:,np.newaxis]),
+            #                                          axis=1))
+
+            sucu = np.concatenate((orig_surf['sulc'][:,np.newaxis], 
                                                       orig_surf['curv'][:,np.newaxis]),
-                                                     axis=1))
+                                                     axis=1)
             sulc = sucu[:,0]
             curv = sucu[:,1]
         else:
@@ -124,8 +128,9 @@ if __name__ == "__main__":
         pred = inference(curv, sulc, model)
         pred = par_36_to_fs_vec[pred]
         
-        orig_lbl = resample_label(template['vertices'], orig_surf['vertices'], pred)
-        
+        # orig_lbl = resample_label(template['vertices'], orig_surf['vertices'], pred)
+        orig_lbl = pred
+
         orig_surf['par_fs_vec'] = orig_lbl
         write_vtk(orig_surf, out_file)
    
