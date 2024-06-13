@@ -7,6 +7,16 @@ This is the code for paper ["Spherical U-Net on Cortical Surfaces: Methods and A
 - ~~NVIDIA GPU~~
 - ~~CUDA CuDNN~~
 
+### Cc's Python Dependencies
+- python (3.8)
+- torch (2.2.1)
+- torchvision (0.17.1)
+- pyvista (0.43.4)
+- numpy (1.21.5)
+- scikit-learn (1.3.2)
+- vtk (9.0.3)
+
+
 ### Python Dependencies
 - python (3.6)
 - pytorch (0.4.1+)
