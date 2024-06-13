@@ -32,9 +32,13 @@ def read_vtk(in_file):
     """
     polydata = pyvista.read(in_file)
     
-    n_faces = polydata.n_faces
+    # n_faces = polydata.n_faces
+
+    n_faces = polydata.n_faces_strict
+
+    # import pdb; pdb.set_trace()
     vertices = np.array(polydata.points)  # get vertices coordinate
-    
+
     # only for triangles polygons data
     faces = np.array(polydata.GetPolys().GetData())  # get faces connectivity
     assert len(faces)/4 == n_faces, "faces number is wrong!"
