@@ -103,7 +103,7 @@ if __name__ == "__main__":
     # par_36_to_fs_vec = get_par_36_to_fs_vec()
     par_36_to_fs_vec = get_par_fs_lookup_table()[0]
 
-    template = read_vtk('neigh_indices/sphere_' + str(n_vertices) + '.vtk')
+    template = read_vtk('neigh_indices/sphere_' + str(n_vertices) + '_rotated_0.vtk')
     if in_file is not None:
         orig_surf = read_vtk(in_file)
         curv_temp = orig_surf['curv']
