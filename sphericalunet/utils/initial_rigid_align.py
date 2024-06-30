@@ -33,6 +33,25 @@ def get_rot_mat_zyx(z1, y2, x3):
 
     
 def initialRigidAlign(moving, fixed, SearchWidth=64/180*(np.pi), numIntervals=16, minSearchWidth=8/180*(np.pi), moving_xyz=None, bi=True, fixed_img=None, verbose=False):
+    """
+    Performs initial rigid alignment between two sets of points in 3D space.
+
+    Args:
+        moving (numpy.ndarray): The moving set of points.
+        fixed (numpy.ndarray): The fixed set of points.
+        SearchWidth (float, optional): The search width for the alignment. Defaults to 64/180*(np.pi).
+        numIntervals (int, optional): The number of intervals for the alignment. Defaults to 16.
+        minSearchWidth (float, optional): The minimum search width for the alignment. Defaults to 8/180*(np.pi).
+        moving_xyz (numpy.ndarray, optional): The coordinates of the moving points. Defaults to None.
+        bi (bool, optional): Flag indicating whether to use bilinear resampling. Defaults to True.
+        fixed_img (numpy.ndarray, optional): The fixed image for bilinear resampling. Defaults to None.
+        verbose (bool, optional): Flag indicating whether to print verbose output. Defaults to False.
+
+    Returns:
+        numpy.ndarray: The best rotation angles for alignment.
+        float: The previous energy.
+        float: The current energy.
+    """
     assert len(moving) == len(moving_xyz), "moving feature's size is not correct"
     radius = np.amax(moving_xyz[:,0])
     if bi == False:
