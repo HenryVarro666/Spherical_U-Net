@@ -16,7 +16,7 @@ import numpy as np
 import glob
 import os
 
-from sphericalunet.utils.utils import compute_weight
+# from sphericalunet.utils.utils import compute_weight
 import matplotlib.pyplot as plt
 from tensorboardX import SummaryWriter
 writer = SummaryWriter('log/a')
@@ -95,7 +95,7 @@ fold = 1 # 1,2,3
 #     def __len__(self):
 #         return len(self.files)
 
-class BrainDatasetSDF(Dataset):
+class BrainDatasetSDF(torch.utils.data.Dataset):
     def __init__(self, *data_dirs, transform=None):
         self.data_files = []
         for data_dir in data_dirs:
@@ -123,15 +123,17 @@ class BrainDatasetSDF(Dataset):
         if self.transform:
             features, sdf = self.transform(features, sdf)
 
-        return torch.tensor(features, dtype=torch.float32), torch.tensor(sdf, dtype=torch.float32)
+        # return torch.tensor(features, dtype=torch.float32), torch.tensor(sdf, dtype=torch.float32)
+        return torch.tensor(features, dtype=torch.float32), torch.tensor(sdf, dtype=torch.long)
+
 
 # 定义数据集目录路径
-fold1 = '/media/fenqiang/DATA/unc/Data/NeonateParcellation/format_dataset/90/fold1'
-fold2 = '/media/fenqiang/DATA/unc/Data/NeonateParcellation/format_dataset/90/fold2'
-fold3 = '/media/fenqiang/DATA/unc/Data/NeonateParcellation/format_dataset/90/fold3'
-fold4 = '/media/fenqiang/DATA/unc/Data/NeonateParcellation/format_dataset/90/fold4'
-fold5 = '/media/fenqiang/DATA/unc/Data/NeonateParcellation/format_dataset/90/fold5'
-fold6 = '/media/fenqiang/DATA/unc/Data/NeonateParcellation/format_dataset/90/fold6'
+fold1 = '/mnt/d/Spherical_U-Net/Test/lh/fold1'
+fold2 = '/mnt/d/Spherical_U-Net/Test/lh/fold2'
+fold3 = '/mnt/d/Spherical_U-Net/Test/lh/fold3'
+fold4 = '/mnt/d/Spherical_U-Net/Test/lh/fold4'
+fold5 = '/mnt/d/Spherical_U-Net/Test/lh/fold5'
+fold6 = '/mnt/d/Spherical_U-Net/Test/lh/fold6'
 
 if fold == 1:
     train_dataset = BrainDatasetSDF(fold3, fold6, fold2, fold5)          
@@ -184,6 +186,7 @@ model.cuda(cuda)
 criterion = nn.CrossEntropyLoss()
 # 使用 Adam 优化器 torch.optim.Adam 来优化模型参数
 # lr=learning_rate：设置学习率
+# optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 # 使用学习率调度器 torch.optim.lr_scheduler.ReduceLROnPlateau
 # optimizer：与之关联的优化器。
@@ -194,14 +197,15 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 # threshold=0.0001：用于确定何时降低学习率的阈值。
 # threshold_mode='rel'：使用相对变化来确定何时降低学习率。
 # min_lr=0.000001：设置学习率的下限。
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', factor=0.2, patience=1, verbose=True, threshold=0.0001, threshold_mode='rel', min_lr=0.000001)
+# scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', factor=0.2, patience=1, verbose=True, threshold=0.0001, threshold_mode='rel', min_lr=0.000001)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', factor=0.2, patience=1, threshold=0.0001, threshold_mode='rel', min_lr=0.000001)
 
 
 def train_step(data, target):
     # 设置模型为训练模式
     model.train()
     # 将数据和标签移动到GPU
-    data, target = data.cuda(cuda), target.cuda(cuda)
+    data, target = data.cuda(cuda).float(), target.cuda(cuda).long()
 
     # 前向传播
     prediction = model(data)
@@ -217,6 +221,24 @@ def train_step(data, target):
     return loss.item()
 
 
+# def compute_dice(pred, gt):
+#     # 使用 .cpu().numpy() 方法将预测结果 pred 和真实标签 gt 
+#     # 从 GPU 内存移动到 CPU 内存，并转换为 NumPy 数组。
+#     pred = pred.cpu().numpy()
+#     gt = gt.cpu().numpy()
+    
+#     # 创建一个长度为 36 的零数组，用于存储每个类别的 Dice 系数。假设有 36 个类别。
+#     dice = np.zeros(36)
+#     for i in range(36):
+#         # 使用 np.where(gt == i)[0] 找到真实标签中类别 i 的索引。
+#         gt_indices = np.where(gt == i)[0]
+#         # 使用 np.where(pred == i)[0] 找到预测结果中类别 i 的索引。
+#         pred_indices = np.where(pred == i)[0]
+#         # 使用 np.intersect1d(gt_indices, pred_indices) 找到真实标签和预测结果中类别 i 的交集索引。
+#         # 计算类别 i 的 Dice 系数
+#         dice[i] = 2 * len(np.intersect1d(gt_indices, pred_indices))/(len(gt_indices) + len(pred_indices))
+#     return dice
+
 def compute_dice(pred, gt):
     # 使用 .cpu().numpy() 方法将预测结果 pred 和真实标签 gt 
     # 从 GPU 内存移动到 CPU 内存，并转换为 NumPy 数组。
@@ -230,9 +252,14 @@ def compute_dice(pred, gt):
         gt_indices = np.where(gt == i)[0]
         # 使用 np.where(pred == i)[0] 找到预测结果中类别 i 的索引。
         pred_indices = np.where(pred == i)[0]
-        # 使用 np.intersect1d(gt_indices, pred_indices) 找到真实标签和预测结果中类别 i 的交集索引。
-        # 计算类别 i 的 Dice 系数
-        dice[i] = 2 * len(np.intersect1d(gt_indices, pred_indices))/(len(gt_indices) + len(pred_indices))
+        
+        if len(gt_indices) == 0 or len(pred_indices) == 0:
+            # 跳过该类别的计算
+            dice[i] = 1.0 if len(gt_indices) == 0 and len(pred_indices) == 0 else 0.0
+        else:
+            # 使用 np.intersect1d(gt_indices, pred_indices) 找到真实标签和预测结果中类别 i 的交集索引。
+            # 计算类别 i 的 Dice 系数
+            dice[i] = 2 * len(np.intersect1d(gt_indices, pred_indices)) / (len(gt_indices) + len(pred_indices))
     return dice
 
 
@@ -245,8 +272,8 @@ def val_during_training(dataloader):
     # 使用 enumerate 遍历 dataloader 中的每个批次
     for batch_idx, (data, target) in enumerate(dataloader):
         # data.squeeze() 和 target.squeeze()：移除维度为 1 的维度。
-        data = data.squeeze()
-        target = target.squeeze()
+        data = data.squeeze().float()
+        target = target.squeeze().long()
         # 将数据和标签移动到 GPU 上
         data, target = data.cuda(cuda), target.cuda(cuda)
         # with torch.no_grad()：在上下文管理器 torch.no_grad() 中进行前向传播，禁用梯度计算，以减少内存使用和加速计算。
