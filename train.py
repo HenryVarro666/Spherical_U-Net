@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 from tensorboardX import SummaryWriter
 writer = SummaryWriter('log/a')
 
-from sphericalunet.model import Unet_40k, Unet_160k
+from model import Unet_40k, Unet_160k
 
 ################################################################
 """ hyper-parameters """
@@ -42,59 +42,86 @@ fold = 1 # 1,2,3
 ################################################################
 
 
-class BrainSphere(torch.utils.data.Dataset):
+# class BrainSphere(torch.utils.data.Dataset):
 
-    # 将所有给定目录中的 .mat 文件路径收集到一个列表 self.files 中
-    def __init__(self, root1, root2 = None, root3 = None, root4 = None, root5 = None, root6 = None, root7=None):
+#     # 将所有给定目录中的 .mat 文件路径收集到一个列表 self.files 中
+#     def __init__(self, root1, root2 = None, root3 = None, root4 = None, root5 = None, root6 = None, root7=None):
 
-        # 使用 glob.glob 找到 root1 目录中所有扩展名为 .mat 的文件，并将其路径添加到 self.files 列表中
-        # 使用 sorted 对文件路径进行排序，以确保有序
-        self.files = sorted(glob.glob(os.path.join(root1, '*.mat')))  
-        # 对每一个额外的目录参数（root2 到 root7），如果不为 None，就使用 glob.glob 找到该目录中所有 .mat 文件，并将其路径添加到 self.files 列表中。
-        # 每次添加时，同样使用 sorted 对新添加的文件进行排序。  
-        if root2 is not None:
-            self.files = self.files + sorted(glob.glob(os.path.join(root2, '*.mat')))
-        if root3 is not None:
-            self.files = self.files + sorted(glob.glob(os.path.join(root3, '*.mat')))
-        if root4 is not None:
-            self.files = self.files + sorted(glob.glob(os.path.join(root4, '*.mat')))
-        if root5 is not None:
-            self.files = self.files + sorted(glob.glob(os.path.join(root5, '*.mat')))
-        if root6 is not None:
-            self.files = self.files + sorted(glob.glob(os.path.join(root6, '*.mat')))
-        if root7 is not None:
-            self.files = self.files + sorted(glob.glob(os.path.join(root7, '*.mat')))
+#         # 使用 glob.glob 找到 root1 目录中所有扩展名为 .mat 的文件，并将其路径添加到 self.files 列表中
+#         # 使用 sorted 对文件路径进行排序，以确保有序
+#         self.files = sorted(glob.glob(os.path.join(root1, '*.mat')))  
+#         # 对每一个额外的目录参数（root2 到 root7），如果不为 None，就使用 glob.glob 找到该目录中所有 .mat 文件，并将其路径添加到 self.files 列表中。
+#         # 每次添加时，同样使用 sorted 对新添加的文件进行排序。  
+#         if root2 is not None:
+#             self.files = self.files + sorted(glob.glob(os.path.join(root2, '*.mat')))
+#         if root3 is not None:
+#             self.files = self.files + sorted(glob.glob(os.path.join(root3, '*.mat')))
+#         if root4 is not None:
+#             self.files = self.files + sorted(glob.glob(os.path.join(root4, '*.mat')))
+#         if root5 is not None:
+#             self.files = self.files + sorted(glob.glob(os.path.join(root5, '*.mat')))
+#         if root6 is not None:
+#             self.files = self.files + sorted(glob.glob(os.path.join(root6, '*.mat')))
+#         if root7 is not None:
+#             self.files = self.files + sorted(glob.glob(os.path.join(root7, '*.mat')))
 
 
-    def __getitem__(self, index):
-        # 根据传入的索引，从文件列表self.files中获取相应的文件路径
-        file = self.files[index]
-        # 使用sio.loadmat函数加载MAT文件中的数据。假设MAT文件中包含一个名为'data'的数组
-        data = sio.loadmat(file)
-        data = data['data']
+#     def __getitem__(self, index):
+#         # 根据传入的索引，从文件列表self.files中获取相应的文件路径
+#         file = self.files[index]
+#         # 使用sio.loadmat函数加载MAT文件中的数据。假设MAT文件中包含一个名为'data'的数组
+#         data = sio.loadmat(file)
+#         data = data['data']
         
-        # 从加载的数据中提取特定列（假设是第0, 1, 2列）作为特征数据。
-        feats = data[:,[0,1,2]]
-        # 计算每个特征的最大值，逐列归一化特征数据，使每个特征值在0到1之间。这样做有助于消除不同特征值范围对模型训练的影响
-        feat_max = np.max(feats,0)
-        for i in range(np.shape(feats)[1]):
-            feats[:,i] = feats[:, i]/feat_max[i]
+#         # 从加载的数据中提取特定列（假设是第0, 1, 2列）作为特征数据。
+#         feats = data[:,[0,1,2]]
+#         # 计算每个特征的最大值，逐列归一化特征数据，使每个特征值在0到1之间。这样做有助于消除不同特征值范围对模型训练的影响
+#         feat_max = np.max(feats,0)
+#         for i in range(np.shape(feats)[1]):
+#             feats[:,i] = feats[:, i]/feat_max[i]
 	
-        # 加载与数据文件同名但扩展名为.label的标签文件
-        label = sio.loadmat(file[:-4] + '.label')
-        # 提取标签数组
-        label = label['label']   
-        # 通过squeeze函数去除多余的维度
-        label = np.squeeze(label)
-        # 标签减1，通常是为了将标签从1-based索引转换为0-based索引，适应某些机器学习库的要求
-        label = label - 1
-        # 返回归一化处理后的特征数据和标签，并将它们转换为指定的数据类型
-        return feats.astype(np.float32), label.astype(np.long)
+#         # 加载与数据文件同名但扩展名为.label的标签文件
+#         label = sio.loadmat(file[:-4] + '.label')
+#         # 提取标签数组
+#         label = label['label']   
+#         # 通过squeeze函数去除多余的维度
+#         label = np.squeeze(label)
+#         # 标签减1，通常是为了将标签从1-based索引转换为0-based索引，适应某些机器学习库的要求
+#         label = label - 1
+#         # 返回归一化处理后的特征数据和标签，并将它们转换为指定的数据类型
+#         return feats.astype(np.float32), label.astype(np.long)
 
-    # 返回 self.files 列表的长度，即文件的数量。
+#     # 返回 self.files 列表的长度，即文件的数量。
+#     def __len__(self):
+#         return len(self.files)
+
+class BrainDatasetSDF(torch.utils.data.Dataset):
+    def __init__(self, data_dir, transform=None):
+        self.data_files = sorted(glob.glob(os.path.join(data_dir, '*_sdf.npy')))
+        self.transform = transform
+
     def __len__(self):
-        return len(self.files)
+        return len(self.data_files)
 
+    def __getitem__(self, idx):
+        data_path = self.data_files[idx]
+        data = np.load(data_path, allow_pickle=True).item()
+        features = data['vertices']
+        sdf = data['sdf']
+
+        additional_features = []
+        for key in ['sulc', 'curv']:
+            if key in data:
+                additional_features.append(data[key])
+        
+        if additional_features:
+            additional_features = np.stack(additional_features, axis=-1)
+            features = np.hstack((features, additional_features))
+
+        if self.transform:
+            features, sdf = self.transform(features, sdf)
+
+        return torch.tensor(features, dtype=torch.float32), torch.tensor(sdf, dtype=torch.float32)
 
 fold1 = '/media/fenqiang/DATA/unc/Data/NeonateParcellation/format_dataset/90/fold1'
 fold2 = '/media/fenqiang/DATA/unc/Data/NeonateParcellation/format_dataset/90/fold2'
@@ -104,14 +131,14 @@ fold5 = '/media/fenqiang/DATA/unc/Data/NeonateParcellation/format_dataset/90/fol
 fold6 = '/media/fenqiang/DATA/unc/Data/NeonateParcellation/format_dataset/90/fold6'
 
 if fold == 1:
-    train_dataset = BrainSphere(fold3,fold6,fold2,fold5)          
-    val_dataset = BrainSphere(fold1)
+    train_dataset = BrainDatasetSDF(fold3,fold6,fold2,fold5)          
+    val_dataset = BrainDatasetSDF(fold1)
 elif fold == 2:
-    train_dataset = BrainSphere(fold1,fold4,fold3,fold6)          
-    val_dataset = BrainSphere(fold2)
+    train_dataset = BrainDatasetSDF(fold1,fold4,fold3,fold6)          
+    val_dataset = BrainDatasetSDF(fold2)
 elif fold == 3:
-    train_dataset = BrainSphere(fold1,fold4,fold2,fold5)          
-    val_dataset = BrainSphere(fold3)
+    train_dataset = BrainDatasetSDF(fold1,fold4,fold2,fold5)          
+    val_dataset = BrainDatasetSDF(fold3)
 else:
     raise NotImplementedError('fold name is wrong!')
 
