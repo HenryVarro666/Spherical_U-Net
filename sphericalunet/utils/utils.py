@@ -344,7 +344,6 @@ def convert_par_fs_int_to_par_vec(parc_int):
     a = get_par_36_to_fs_vec()
     return a[parc_int]
 
-
 def get_par_35_to_fs_vec():
     """ Preprocessing for parcellatiion label """
         
