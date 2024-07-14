@@ -95,9 +95,11 @@ fold = 1 # 1,2,3
 #     def __len__(self):
 #         return len(self.files)
 
-class BrainDatasetSDF(torch.utils.data.Dataset):
-    def __init__(self, data_dir, transform=None):
-        self.data_files = sorted(glob.glob(os.path.join(data_dir, '*_sdf.npy')))
+class BrainDatasetSDF(Dataset):
+    def __init__(self, *data_dirs, transform=None):
+        self.data_files = []
+        for data_dir in data_dirs:
+            self.data_files.extend(sorted(glob.glob(os.path.join(data_dir, '*_sdf.npy'))))
         self.transform = transform
 
     def __len__(self):
@@ -123,6 +125,7 @@ class BrainDatasetSDF(torch.utils.data.Dataset):
 
         return torch.tensor(features, dtype=torch.float32), torch.tensor(sdf, dtype=torch.float32)
 
+# 定义数据集目录路径
 fold1 = '/media/fenqiang/DATA/unc/Data/NeonateParcellation/format_dataset/90/fold1'
 fold2 = '/media/fenqiang/DATA/unc/Data/NeonateParcellation/format_dataset/90/fold2'
 fold3 = '/media/fenqiang/DATA/unc/Data/NeonateParcellation/format_dataset/90/fold3'
@@ -131,13 +134,13 @@ fold5 = '/media/fenqiang/DATA/unc/Data/NeonateParcellation/format_dataset/90/fol
 fold6 = '/media/fenqiang/DATA/unc/Data/NeonateParcellation/format_dataset/90/fold6'
 
 if fold == 1:
-    train_dataset = BrainDatasetSDF(fold3,fold6,fold2,fold5)          
+    train_dataset = BrainDatasetSDF(fold3, fold6, fold2, fold5)          
     val_dataset = BrainDatasetSDF(fold1)
 elif fold == 2:
-    train_dataset = BrainDatasetSDF(fold1,fold4,fold3,fold6)          
+    train_dataset = BrainDatasetSDF(fold1, fold4, fold3, fold6)          
     val_dataset = BrainDatasetSDF(fold2)
 elif fold == 3:
-    train_dataset = BrainDatasetSDF(fold1,fold4,fold2,fold5)          
+    train_dataset = BrainDatasetSDF(fold1, fold4, fold2, fold5)          
     val_dataset = BrainDatasetSDF(fold3)
 else:
     raise NotImplementedError('fold name is wrong!')
@@ -147,6 +150,7 @@ else:
 # pin_memory=True：如果设置为 True，DataLoader 会在返回之前将 Tensors 的数据复制到 CUDA 固定内存中，可以加速主机到 GPU 的数据传输。
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
 val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
+
 
 
 # if model_name == 'Unet_infant':
