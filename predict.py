@@ -21,20 +21,20 @@ from sphericalunet.utils.vtk import read_vtk, write_vtk, resample_label
 from sphericalunet.utils.utils import get_par_fs_lookup_table
 from sphericalunet.utils.interp_numpy import resampleSphereSurf
 
-class BrainSphere(torch.utils.data.Dataset):
+# class BrainSphere(torch.utils.data.Dataset):
 
-    def __init__(self, root1):
+#     def __init__(self, root1):
 
-        self.files = sorted(glob.glob(os.path.join(root1, '*.vtk')))    
+#         self.files = sorted(glob.glob(os.path.join(root1, '*.vtk')))    
 
-    def __getitem__(self, index):
-        file = self.files[index]
-        data = read_vtk(file)
+#     def __getitem__(self, index):
+#         file = self.files[index]
+#         data = read_vtk(file)
        
-        return data, file
+#         return data, file
 
-    def __len__(self):
-        return len(self.files)
+#     def __len__(self):
+#         return len(self.files)
 
 
 def inference(curv, sulc, model):
@@ -88,14 +88,17 @@ if __name__ == "__main__":
     
     if level == '7':
         model = Unet_40k(2, 36)
-        model_path = '40k_curv_sulc.pkl'
+        # model_path = '40k_curv_sulc.pkl'
+        model_path = 'Unet_40k_1_final.pkl'
+
         n_vertices = 40962
     else:
         model = Unet_160k(2, 36)
         model_path = '160k_curv_sulc.pkl'
         n_vertices = 163842
     
-    model_path = 'trained_models/' + hemi + '_hemi_' +  model_path
+    # model_path = 'trained_models/' + hemi + '_hemi_' +  model_path
+    model_path = 'trained_models_cc/' + model_path
     model.to(device)
     model.load_state_dict(torch.load(model_path))
     model.eval()
