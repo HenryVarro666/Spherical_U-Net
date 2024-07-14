@@ -1,4 +1,12 @@
 # Spherical U-Net on Cortical Surfaces
+
+---
+```python
+python predict.py -hemi left -l 7 -i /mnt/d/Spherical_U-Net/examples/left_hemisphere/40962/test1.lh.40k.vtk -o 0715.vtk
+```
+
+
+---
 This is the code for paper ["Spherical U-Net on Cortical Surfaces: Methods and Applications"](https://link.springer.com/chapter/10.1007/978-3-030-20351-1_67). 
 
 ## How to use it
