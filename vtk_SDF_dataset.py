@@ -2,7 +2,7 @@
 Author: HenryVarro666 1504517223@qq.com
 Date: 1969-12-31 19:00:00
 LastEditors: HenryVarro666 1504517223@qq.com
-LastEditTime: 2024-07-15 08:04:51
+LastEditTime: 2024-07-14 18:42:17
 FilePath: /Spherical_U-Net/vtk_2_dataloader.py
 '''
 # from sphericalunet.utils.vtk import read_vtk
