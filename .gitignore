@@ -5,3 +5,4 @@ prediction_results/
 train_NAMIC.py
 test_NAMIC.py
 part_output/
+example_vtk.py
