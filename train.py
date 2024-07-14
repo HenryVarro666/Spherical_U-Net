@@ -21,13 +21,15 @@ import matplotlib.pyplot as plt
 from tensorboardX import SummaryWriter
 writer = SummaryWriter('log/a')
 
+from sphericalunet.model import Unet_40k, Unet_160k
+
 ################################################################
 """ hyper-parameters """
 # 指定使用第一个 GPU 进行训练。如果有多个 GPU，可以根据需要更改设备索引
 cuda = torch.device('cuda:0')
 # 每个批次中包含的样本数。在训练和验证过程中，将数据分割成多个批次处理
 batch_size = 1
-model_name = 'Unet_infant'  # 'Unet_infant', 'Unet_18', 'Unet_2ring', 'Unet_repa', 'fcn', 'SegNet', 'SegNet_max'
+model_name = 'Unet_40k'  # 'Unet_16==40k', 'Unet_160k'
 up_layer = 'upsample_interpolation' # 'upsample_interpolation', 'upsample_fixindex' 
 in_channels = 3
 out_channels = 36
@@ -120,20 +122,24 @@ train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_s
 val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
 
 
-if model_name == 'Unet_infant':
-    model = Unet_infant(in_ch=in_channels, out_ch=out_channels)
-elif model_name == 'Unet_18':
-     model = Unet_18(in_ch=in_channels, out_ch=out_channels)
-elif model_name == 'Unet_2ring':
-    model = Unet_2ring(in_ch=in_channels, out_ch=out_channels)
-elif model_name == 'Unet_repa':
-    model = Unet_repa(in_ch=in_channels, out_ch=out_channels)
-elif model_name == 'fcn':
-    model = fcn(in_ch=in_channels, out_ch=out_channels)
-elif model_name == 'SegNet':
-    model = SegNet(in_ch=in_channels, out_ch=out_channels, up_layer=up_layer)
-elif model_name == 'SegNet_max':
-    model = SegNet_max(in_ch=in_channels, out_ch=out_channels)
+# if model_name == 'Unet_infant':
+#     model = Unet_infant(in_ch=in_channels, out_ch=out_channels)
+# elif model_name == 'Unet_18':
+#      model = Unet_18(in_ch=in_channels, out_ch=out_channels)
+# elif model_name == 'Unet_2ring':
+#     model = Unet_2ring(in_ch=in_channels, out_ch=out_channels)
+# elif model_name == 'Unet_repa':
+#     model = Unet_repa(in_ch=in_channels, out_ch=out_channels)
+# elif model_name == 'fcn':
+#     model = fcn(in_ch=in_channels, out_ch=out_channels)
+# elif model_name == 'SegNet':
+#     model = SegNet(in_ch=in_channels, out_ch=out_channels, up_layer=up_layer)
+# elif model_name == 'SegNet_max':
+#     model = SegNet_max(in_ch=in_channels, out_ch=out_channels)
+if model_name == 'Unet_40k':
+    model = Unet_40k(in_ch=in_channels, out_ch=out_channels)
+elif model_name == 'Unet_160k':
+    model = Unet_160k(in_ch=in_channels, out_ch=out_channels)
 else:
     raise NotImplementedError('model name is wrong!')
 
