@@ -29,9 +29,9 @@ from model import Unet_40k, Unet_160k
 cuda = torch.device('cuda:0')
 # 每个批次中包含的样本数。在训练和验证过程中，将数据分割成多个批次处理
 batch_size = 1
-model_name = 'Unet_40k'  # 'Unet_16==40k', 'Unet_160k'
+model_name = 'Unet_40k'  # 'Unet_40k', 'Unet_160k'
 up_layer = 'upsample_interpolation' # 'upsample_interpolation', 'upsample_fixindex' 
-in_channels = 3
+in_channels = 2
 out_channels = 36
 learning_rate = 0.001
 # 动量项，用于优化器中，帮助加速收敛
@@ -40,60 +40,6 @@ momentum = 0.99
 weight_decay = 0.0001
 fold = 1 # 1,2,3 
 ################################################################
-
-
-# class BrainSphere(torch.utils.data.Dataset):
-
-#     # 将所有给定目录中的 .mat 文件路径收集到一个列表 self.files 中
-#     def __init__(self, root1, root2 = None, root3 = None, root4 = None, root5 = None, root6 = None, root7=None):
-
-#         # 使用 glob.glob 找到 root1 目录中所有扩展名为 .mat 的文件，并将其路径添加到 self.files 列表中
-#         # 使用 sorted 对文件路径进行排序，以确保有序
-#         self.files = sorted(glob.glob(os.path.join(root1, '*.mat')))  
-#         # 对每一个额外的目录参数（root2 到 root7），如果不为 None，就使用 glob.glob 找到该目录中所有 .mat 文件，并将其路径添加到 self.files 列表中。
-#         # 每次添加时，同样使用 sorted 对新添加的文件进行排序。  
-#         if root2 is not None:
-#             self.files = self.files + sorted(glob.glob(os.path.join(root2, '*.mat')))
-#         if root3 is not None:
-#             self.files = self.files + sorted(glob.glob(os.path.join(root3, '*.mat')))
-#         if root4 is not None:
-#             self.files = self.files + sorted(glob.glob(os.path.join(root4, '*.mat')))
-#         if root5 is not None:
-#             self.files = self.files + sorted(glob.glob(os.path.join(root5, '*.mat')))
-#         if root6 is not None:
-#             self.files = self.files + sorted(glob.glob(os.path.join(root6, '*.mat')))
-#         if root7 is not None:
-#             self.files = self.files + sorted(glob.glob(os.path.join(root7, '*.mat')))
-
-
-#     def __getitem__(self, index):
-#         # 根据传入的索引，从文件列表self.files中获取相应的文件路径
-#         file = self.files[index]
-#         # 使用sio.loadmat函数加载MAT文件中的数据。假设MAT文件中包含一个名为'data'的数组
-#         data = sio.loadmat(file)
-#         data = data['data']
-        
-#         # 从加载的数据中提取特定列（假设是第0, 1, 2列）作为特征数据。
-#         feats = data[:,[0,1,2]]
-#         # 计算每个特征的最大值，逐列归一化特征数据，使每个特征值在0到1之间。这样做有助于消除不同特征值范围对模型训练的影响
-#         feat_max = np.max(feats,0)
-#         for i in range(np.shape(feats)[1]):
-#             feats[:,i] = feats[:, i]/feat_max[i]
-	
-#         # 加载与数据文件同名但扩展名为.label的标签文件
-#         label = sio.loadmat(file[:-4] + '.label')
-#         # 提取标签数组
-#         label = label['label']   
-#         # 通过squeeze函数去除多余的维度
-#         label = np.squeeze(label)
-#         # 标签减1，通常是为了将标签从1-based索引转换为0-based索引，适应某些机器学习库的要求
-#         label = label - 1
-#         # 返回归一化处理后的特征数据和标签，并将它们转换为指定的数据类型
-#         return feats.astype(np.float32), label.astype(np.long)
-
-#     # 返回 self.files 列表的长度，即文件的数量。
-#     def __len__(self):
-#         return len(self.files)
 
 class BrainDatasetSDF(torch.utils.data.Dataset):
     def __init__(self, *data_dirs, transform=None):
@@ -153,22 +99,6 @@ else:
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
 val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
 
-
-
-# if model_name == 'Unet_infant':
-#     model = Unet_infant(in_ch=in_channels, out_ch=out_channels)
-# elif model_name == 'Unet_18':
-#      model = Unet_18(in_ch=in_channels, out_ch=out_channels)
-# elif model_name == 'Unet_2ring':
-#     model = Unet_2ring(in_ch=in_channels, out_ch=out_channels)
-# elif model_name == 'Unet_repa':
-#     model = Unet_repa(in_ch=in_channels, out_ch=out_channels)
-# elif model_name == 'fcn':
-#     model = fcn(in_ch=in_channels, out_ch=out_channels)
-# elif model_name == 'SegNet':
-#     model = SegNet(in_ch=in_channels, out_ch=out_channels, up_layer=up_layer)
-# elif model_name == 'SegNet_max':
-#     model = SegNet_max(in_ch=in_channels, out_ch=out_channels)
 if model_name == 'Unet_40k':
     model = Unet_40k(in_ch=in_channels, out_ch=out_channels)
 elif model_name == 'Unet_160k':
@@ -219,25 +149,6 @@ def train_step(data, target):
     optimizer.step()
     # 返回损失值
     return loss.item()
-
-
-# def compute_dice(pred, gt):
-#     # 使用 .cpu().numpy() 方法将预测结果 pred 和真实标签 gt 
-#     # 从 GPU 内存移动到 CPU 内存，并转换为 NumPy 数组。
-#     pred = pred.cpu().numpy()
-#     gt = gt.cpu().numpy()
-    
-#     # 创建一个长度为 36 的零数组，用于存储每个类别的 Dice 系数。假设有 36 个类别。
-#     dice = np.zeros(36)
-#     for i in range(36):
-#         # 使用 np.where(gt == i)[0] 找到真实标签中类别 i 的索引。
-#         gt_indices = np.where(gt == i)[0]
-#         # 使用 np.where(pred == i)[0] 找到预测结果中类别 i 的索引。
-#         pred_indices = np.where(pred == i)[0]
-#         # 使用 np.intersect1d(gt_indices, pred_indices) 找到真实标签和预测结果中类别 i 的交集索引。
-#         # 计算类别 i 的 Dice 系数
-#         dice[i] = 2 * len(np.intersect1d(gt_indices, pred_indices))/(len(gt_indices) + len(pred_indices))
-#     return dice
 
 def compute_dice(pred, gt):
     # 使用 .cpu().numpy() 方法将预测结果 pred 和真实标签 gt 

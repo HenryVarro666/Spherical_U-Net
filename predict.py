@@ -87,7 +87,8 @@ if __name__ == "__main__":
         out_file = in_file[0:-4] + '.parc.vtk'
     
     if level == '7':
-        model = Unet_40k(2, 36)
+        # model = Unet_40k(2, 36)
+        model = Unet_40k(3, 36)
         # model_path = '40k_curv_sulc.pkl'
         model_path = 'Unet_40k_1_final.pkl'
 
@@ -98,7 +99,7 @@ if __name__ == "__main__":
         n_vertices = 163842
     
     # model_path = 'trained_models/' + hemi + '_hemi_' +  model_path
-    model_path = 'trained_models_cc/' + model_path
+    model_path = 'trained_models/' + model_path
     model.to(device)
     model.load_state_dict(torch.load(model_path))
     model.eval()
