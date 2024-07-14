@@ -307,8 +307,6 @@ def get_par_fs_lookup_table():
     return lookup_table_vec, lookup_table_scalar, lookup_table_name
 
 
-
-
 def convert_par_fs_vec_to_par_int(parc_vec):
     """
     Convert parcellation label from rgb vector to single number from 0 to 35

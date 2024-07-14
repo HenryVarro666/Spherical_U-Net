@@ -18,8 +18,8 @@ import os
 
 from sphericalunet.utils.utils import compute_weight
 import matplotlib.pyplot as plt
-# from tensorboardX import SummaryWriter
-# writer = SummaryWriter('log/a')
+from tensorboardX import SummaryWriter
+writer = SummaryWriter('log/a')
 
 ################################################################
 """ hyper-parameters """
