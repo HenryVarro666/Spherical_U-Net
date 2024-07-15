@@ -31,7 +31,7 @@ cuda = torch.device('cuda:0')
 batch_size = 1
 model_name = 'Unet_40k'  # 'Unet_40k', 'Unet_160k'
 up_layer = 'upsample_interpolation' # 'upsample_interpolation', 'upsample_fixindex' 
-in_channels = 2
+in_channels = 3
 out_channels = 36
 learning_rate = 0.001
 # 动量项，用于优化器中，帮助加速收敛
@@ -243,7 +243,7 @@ for epoch in range(100):
     print("last five train Dice: ",train_dice)
     # 如果最近五个周期的 Dice 系数的标准差小于等于0.00001，保存模型并结束训练
     if np.std(np.array(train_dice)) <= 0.00001:
-        torch.save(model.state_dict(), os.path.join('trained_models_cc', model_name+'_'+str(fold)+"_final.pkl"))
+        torch.save(model.state_dict(), os.path.join('trained_models', model_name+'_'+str(fold)+"_final.pkl"))
         break
     # 否则，每个周期结束后保存一次模型
-    torch.save(model.state_dict(), os.path.join('trained_models_cc', model_name+'_'+str(fold)+".pkl"))
+    torch.save(model.state_dict(), os.path.join('trained_models', model_name+'_'+str(fold)+".pkl"))
