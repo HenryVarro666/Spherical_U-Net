@@ -2,7 +2,7 @@
 Author: HenryVarro666 1504517223@qq.com
 Date: 1969-12-31 19:00:00
 LastEditors: HenryVarro666 1504517223@qq.com
-LastEditTime: 2024-07-14 17:52:53
+LastEditTime: 2024-07-15 07:56:21
 FilePath: /Spherical_U-Net/vtk_2_dataloader.py
 '''
 # from sphericalunet.utils.vtk import read_vtk
@@ -10,7 +10,7 @@ import pyvista as pv
 import numpy as np
 from nibabel.freesurfer import io as fio
 from scipy.spatial import cKDTree
-import torch
+# import torch
 import glob
 import os
 import vtk
@@ -50,17 +50,19 @@ def save_sdf_npy(feature_file, line_file, output_dir):
     surface_data['sdf'] = sdf_values
 
     output_filename = os.path.join(output_dir, os.path.basename(feature_file).replace('.vtk', '_sdf.npy'))
+    print(f'Saving {output_filename}')
     np.save(output_filename, surface_data)
 
 # 示例用法
 if __name__ == "__main__":
     # 硬编码的路径
-    for subject in os.listdir("data"):
-        feature_file = 'path/to/your/surface.vtk'
-        line_file = 'path/to/your/line.vtk'
-        output_dir = './Dataset_npy'
-
-    save_sdf_npy(feature_file, line_file, output_dir)
+    home_dir = '/media/lab/ef1e5021-01ef-4f9e-9cf7-950095b49199/HCP_fromFenqiang/'
+    for subject in os.listdir(home_dir):
+        for hemi in ['lh', 'rh']:
+            feature_file = os.path.join(home_dir, subject, subject+'_recon_40962','surf', f'{subject}.{hemi}.InnerSurf.RegByFS.Resp40962.vtk')
+            line_file = os.path.join(home_dir, subject, subject+'_gyralnet_island_40962', f'{hemi}_surf_skelenton_allpoints_final.vtk')
+            output_dir = '/home/lab/Documents/Spherical_Dataset/'
+            save_sdf_npy(feature_file, line_file, output_dir)
 
 
 
