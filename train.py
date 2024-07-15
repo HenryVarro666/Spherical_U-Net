@@ -54,17 +54,15 @@ class BrainDatasetSDF(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         data_path = self.data_files[idx]
         data = np.load(data_path, allow_pickle=True).item()
-        features = data['vertices']
         sdf = data['sdf']
 
-        additional_features = []
+        features = []
         for key in ['sulc', 'curv']:
-            if key in data:
-                additional_features.append(data[key])
+            features.append(data[key])
         
-        if additional_features:
-            additional_features = np.stack(additional_features, axis=-1)
-            features = np.hstack((features, additional_features))
+        # if additional_features:
+        #     additional_features = np.stack(additional_features, axis=-1)
+        #     features = np.hstack((features, additional_features))
 
         if self.transform:
             features, sdf = self.transform(features, sdf)
