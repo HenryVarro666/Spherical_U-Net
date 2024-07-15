@@ -17,8 +17,7 @@ import os
 
 from model import Unet_40k, Unet_160k
 from sphericalunet.utils.vtk import read_vtk, write_vtk, resample_label
-# from sphericalunet.utils.utils import get_par_36_to_fs_vec
-from sphericalunet.utils.utils import get_par_fs_lookup_table
+from sphericalunet.utils.utils import get_par_36_to_fs_vec
 from sphericalunet.utils.interp_numpy import resampleSphereSurf
 
 class BrainSphere(torch.utils.data.Dataset):
@@ -100,24 +99,17 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load(model_path))
     model.eval()
        
-    # par_36_to_fs_vec = get_par_36_to_fs_vec()
-    par_36_to_fs_vec = get_par_fs_lookup_table()[0]
+    par_36_to_fs_vec = get_par_36_to_fs_vec()
 
-    template = read_vtk('neigh_indices/sphere_' + str(n_vertices) + '_rotated_0.vtk')
-    # template = read_vtk('neigh_indices_raw/template.vtk')
-
+    template = read_vtk('neigh_indices/sphere_' + str(n_vertices) + '.vtk')
     if in_file is not None:
         orig_surf = read_vtk(in_file)
         curv_temp = orig_surf['curv']
         if len(curv_temp) != n_vertices:
-            # sucu = resampleSphereSurf(orig_surf['vertices'], template['vertices'], 
-            #                           np.concatenate((orig_surf['sulc'][:,np.newaxis], 
-            #                                           orig_surf['curv'][:,np.newaxis]),
-            #                                          axis=1))
-
-            sucu = np.concatenate((orig_surf['sulc'][:,np.newaxis], 
+            sucu = resampleSphereSurf(orig_surf['vertices'], template['vertices'], 
+                                      np.concatenate((orig_surf['sulc'][:,np.newaxis], 
                                                       orig_surf['curv'][:,np.newaxis]),
-                                                     axis=1)
+                                                     axis=1))
             sulc = sucu[:,0]
             curv = sucu[:,1]
         else:
@@ -130,9 +122,8 @@ if __name__ == "__main__":
         pred = inference(curv, sulc, model)
         pred = par_36_to_fs_vec[pred]
         
-        # orig_lbl = resample_label(template['vertices'], orig_surf['vertices'], pred)
-        orig_lbl = pred
-
+        orig_lbl = resample_label(template['vertices'], orig_surf['vertices'], pred)
+        
         orig_surf['par_fs_vec'] = orig_lbl
         write_vtk(orig_surf, out_file)
    

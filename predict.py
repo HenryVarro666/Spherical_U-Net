@@ -49,6 +49,17 @@ def inference(curv, sulc, model):
     pred = pred.cpu().numpy()
     return pred
 
+# def inference(features, model):
+#     # 归一化特征
+#     feat_max = [1.2, 13.7]
+#     for i in range(features.shape[1]):
+#         features[:,i] = features[:, i]/feat_max[i]
+#     features = features.to(device)
+#     with torch.no_grad():
+#         prediction = model(features)
+#     pred = prediction.max(1)[1]
+#     pred = pred.cpu().numpy()
+#     return pred
 
 
 if __name__ == "__main__":    
@@ -107,7 +118,7 @@ if __name__ == "__main__":
     # par_36_to_fs_vec = get_par_36_to_fs_vec()
     par_36_to_fs_vec = get_par_fs_lookup_table()[0]
 
-    template = read_vtk('neigh_indices/sphere_' + str(n_vertices) + '_rotated_0.vtk')
+    # template = read_vtk('neigh_indices/sphere_' + str(n_vertices) + '_rotated_0.vtk')
     # template = read_vtk('neigh_indices_raw/template.vtk')
 
     if in_file is not None:
@@ -139,4 +150,27 @@ if __name__ == "__main__":
 
         orig_surf['par_fs_vec'] = orig_lbl
         write_vtk(orig_surf, out_file)
-   
+
+    # if in_file is not None:
+    #     orig_surf = read_vtk(in_file)
+    #     if len(orig_surf['vertices']) != n_vertices:
+    #         raise ValueError("Input surface does not match the specified resolution level.")
+
+    #     # 检查并获取存在的特征
+    #     features_list = []
+    #     for key in ['curv', 'sulc']:
+    #         if key in orig_surf:
+    #             features_list.append(orig_surf[key][:, np.newaxis])
+        
+    #     if not features_list:
+    #         raise ValueError("No valid features found in the input file.")
+        
+    #     features = np.concatenate(features_list, axis=1)
+        
+    #     features = torch.from_numpy(features).float()
+        
+    #     pred = inference(features, model)
+    #     pred = par_36_to_fs_vec[pred]
+        
+    #     orig_surf['par_fs_vec'] = pred
+    #     write_vtk(orig_surf, out_file)
