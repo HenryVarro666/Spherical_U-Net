@@ -2,7 +2,7 @@
 Author: HenryVarro666 1504517223@qq.com
 Date: 1969-12-31 19:00:00
 LastEditors: HenryVarro666 1504517223@qq.com
-LastEditTime: 2024-07-15 07:56:21
+LastEditTime: 2024-07-15 08:04:51
 FilePath: /Spherical_U-Net/vtk_2_dataloader.py
 '''
 # from sphericalunet.utils.vtk import read_vtk
@@ -14,6 +14,8 @@ from scipy.spatial import cKDTree
 import glob
 import os
 import vtk
+import re
+from tqdm import tqdm
 
 def read_vtk(in_file):
     """
@@ -39,7 +41,12 @@ def compute_sdf(surface_points, line_points):
     distances, _ = tree.query(surface_points)
     return distances
 
-def save_sdf_npy(feature_file, line_file, output_dir):
+def save_sdf_npy(feature_file, line_file, output_dir, log_file):
+    if not os.path.exists(feature_file) or not os.path.exists(line_file):
+        with open(log_file, 'a') as log:
+            log.write(f'Skipping: {feature_file} or {line_file} does not exist\n')
+        return
+
     surface_data = read_vtk(feature_file)
     line_data = read_vtk(line_file)
 
@@ -57,13 +64,13 @@ def save_sdf_npy(feature_file, line_file, output_dir):
 if __name__ == "__main__":
     # 硬编码的路径
     home_dir = '/media/lab/ef1e5021-01ef-4f9e-9cf7-950095b49199/HCP_fromFenqiang/'
-    for subject in os.listdir(home_dir):
+    log_file = 'failed_subjects.log'
+    subjects = [subject for subject in os.listdir(home_dir) if re.match(r'^\d+$', subject)]
+    
+    for subject in tqdm(subjects, desc="Processing subjects"):
+        print(f'Processing {subject}')
         for hemi in ['lh', 'rh']:
             feature_file = os.path.join(home_dir, subject, subject+'_recon_40962','surf', f'{subject}.{hemi}.InnerSurf.RegByFS.Resp40962.vtk')
             line_file = os.path.join(home_dir, subject, subject+'_gyralnet_island_40962', f'{hemi}_surf_skelenton_allpoints_final.vtk')
             output_dir = '/home/lab/Documents/Spherical_Dataset/'
-            save_sdf_npy(feature_file, line_file, output_dir)
-
-
-
-
+            save_sdf_npy(feature_file, line_file, output_dir, log_file)
