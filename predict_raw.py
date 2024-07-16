@@ -17,7 +17,7 @@ import os
 
 from model import Unet_40k, Unet_160k
 from sphericalunet.utils.vtk import read_vtk, write_vtk, resample_label
-from sphericalunet.utils.utils import get_par_36_to_fs_vec
+# from sphericalunet.utils.utils import get_par_36_to_fs_vec
 from sphericalunet.utils.interp_numpy import resampleSphereSurf
 
 class BrainSphere(torch.utils.data.Dataset):
@@ -63,7 +63,7 @@ if __name__ == "__main__":
                         help='filename of input surface')
     parser.add_argument('--output', '-o',  default='[input].parc.vtk', metavar='OUTPUT',
                         help='Filename of ouput surface.')
-    parser.add_argument('--device', default='GPU', choices=['GPU', 'CPU'], 
+    parser.add_argument('--device', default='CPU', choices=['GPU', 'CPU', 'mps'], 
                         help='the device for running the model.')
 
     args =  parser.parse_args()
@@ -73,12 +73,24 @@ if __name__ == "__main__":
     level = args.level   
    
     device = args.device
-    if device == 'GPU':
-        device = torch.device('cuda:0')
-    elif device =='CPU':
+
+    if device == 'mps':
+        if torch.backends.mps.is_available():
+            device = torch.device('mps')
+            torch.backends.mps.enable_non_blocking = True
+        else:
+            raise NotImplementedError('MPS device is not available on this system')
+    elif device == 'GPU':
+        if torch.cuda.is_available():
+            device = torch.device('cuda:0')
+        else:
+            raise NotImplementedError('CUDA is not available on this system')
+    elif device == 'CPU':
         device = torch.device('cpu')
     else:
-        raise NotImplementedError('Only support GPU or CPU device')
+        raise NotImplementedError('Only support GPU, CPU, or MPS device')
+
+    print(f'Using device: {device}')
 
     if in_file is None:
         raise NotImplementedError('Only need in_put filename')
@@ -94,14 +106,19 @@ if __name__ == "__main__":
         model_path = '160k_curv_sulc.pkl'
         n_vertices = 163842
     
-    model_path = 'trained_models/' + hemi + '_hemi_' +  model_path
+    model_path = 'trained_models_raw/' + hemi + '_hemi_' +  model_path
+
     model.to(device)
-    model.load_state_dict(torch.load(model_path))
+    # model.load_state_dict(torch.load(model_path))
+    model.load_state_dict(torch.load(model_path, map_location=device))
+
     model.eval()
        
-    par_36_to_fs_vec = get_par_36_to_fs_vec()
+    # par_36_to_fs_vec = get_par_36_to_fs_vec()
 
-    template = read_vtk('neigh_indices/sphere_' + str(n_vertices) + '.vtk')
+    # template = read_vtk('neigh_indices/sphere_' + str(n_vertices) + '.vtk')
+    template = read_vtk('neigh_indices/sphere_' + str(n_vertices) + '_rotated_0.vtk')
+
     if in_file is not None:
         orig_surf = read_vtk(in_file)
         curv_temp = orig_surf['curv']
@@ -120,7 +137,7 @@ if __name__ == "__main__":
         sulc = torch.from_numpy(sulc).unsqueeze(1)
         
         pred = inference(curv, sulc, model)
-        pred = par_36_to_fs_vec[pred]
+        # pred = par_36_to_fs_vec[pred]
         
         orig_lbl = resample_label(template['vertices'], orig_surf['vertices'], pred)
         
