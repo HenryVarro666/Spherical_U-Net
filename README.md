@@ -1,6 +1,17 @@
 # Spherical U-Net on Cortical Surfaces
 
 ---
+
+```shell
+
+conda create -n sunet2 python=3.8
+
+pip install -U scikit-learn
+
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+
 ```python
 python predict.py -hemi left -l 7 -i /mnt/d/Spherical_U-Net/examples/left_hemisphere/40962/test1.lh.40k.vtk -o 0715.vtk
 ```
