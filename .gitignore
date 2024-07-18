@@ -6,7 +6,7 @@ train_NAMIC.py
 test_NAMIC.py
 part_output/
 example_vtk.py
-Test/
+Test_lj/
 Test1/
 Dataset_npy/
 train_desktop.py
