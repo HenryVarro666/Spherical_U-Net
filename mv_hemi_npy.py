@@ -2,7 +2,7 @@
 Author: HenryVarro666 1504517223@qq.com
 Date: 2024-07-15 08:23:17
 LastEditors: HenryVarro666 1504517223@qq.com
-LastEditTime: 2024-07-18 16:46:41
+LastEditTime: 2024-07-18 17:33:35
 FilePath: \Spherical_U-Net\mv_hemi_npy.py
 '''
 import os
@@ -49,6 +49,6 @@ def create_folds(data_dir, num_folds=6):
 # 示例用法
 if __name__ == "__main__":
     # 硬编码的源文件夹路径
-    data_dir = '/mnt/d/Spherical_U-Net/Test'
+    data_dir = './Test1'
     
     create_folds(data_dir)
