@@ -2,7 +2,7 @@
 Author: HenryVarro666 1504517223@qq.com
 Date: 2024-07-15 08:23:17
 LastEditors: HenryVarro666 1504517223@qq.com
-LastEditTime: 2024-07-16 16:48:06
+LastEditTime: 2024-07-18 16:46:41
 FilePath: \Spherical_U-Net\mv_hemi_npy.py
 '''
 import os
@@ -16,8 +16,8 @@ def create_folds(data_dir, num_folds=6):
     rh_dir = os.path.join(data_dir, 'rh')
     
     # 获取所有 .npy 文件
-    lh_files = sorted(glob.glob(os.path.join(data_dir, '*.lh.*.npy')))
-    rh_files = sorted(glob.glob(os.path.join(data_dir, '*.rh.*.npy')))
+    lh_files = sorted(glob.glob(os.path.join(data_dir, '*.lh.*.npz')))
+    rh_files = sorted(glob.glob(os.path.join(data_dir, '*.rh.*.npz')))
     # Debug: Print the number of files found
     print(f"Found {len(lh_files)} lh files and {len(rh_files)} rh files.")
 

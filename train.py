@@ -31,7 +31,8 @@ fold = 1 # 1,2,3
 model_name = 'Unet_40k'  # 'Unet_40k', 'Unet_160k'
 up_layer = 'upsample_interpolation' # 'upsample_interpolation', 'upsample_fixindex' 
 in_channels = 2
-out_channels = 36
+# out_channels = 36
+out_channels = 1 ## by Jiale
 learning_rate = 0.001
 # 动量项，用于优化器中，帮助加速收敛
 momentum = 0.99
@@ -43,12 +44,13 @@ class BrainSphere(torch.utils.data.Dataset):
     def __init__(self, *data_dirs):
         self.data_files = []
         for data_dir in data_dirs:
-            files = sorted(glob.glob(os.path.join(data_dir, '*_sdf.npy')))
+            files = sorted(glob.glob(os.path.join(data_dir, '*_sdf.npz')))
             self.data_files.extend(files) 
 
     def __getitem__(self, index):
         file = self.data_files[index]
-        data = np.load(file, allow_pickle=True).item()
+        # data = np.load(file, allow_pickle=True).item()
+        data = np.load(file, allow_pickle=True)
         
         # Extract features
         sulc = data['sulc']
@@ -109,7 +111,8 @@ print("{} paramerters in total".format(sum(x.numel() for x in model.parameters()
 # 将模型移动到指定的 GPU 上进行计算
 model.cuda(cuda)
 # 使用交叉熵损失函数 nn.CrossEntropyLoss
-criterion = nn.CrossEntropyLoss()
+# criterion = nn.CrossEntropyLoss()
+criterion = nn.L1Loss()
 # 使用 Adam 优化器 torch.optim.Adam 来优化模型参数
 # lr=learning_rate：设置学习率
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -145,23 +148,31 @@ def train_step(data, target):
     return loss.item()
 
 
-def compute_dice(pred, gt):
-    # 使用 .cpu().numpy() 方法将预测结果 pred 和真实标签 gt 
-    # 从 GPU 内存移动到 CPU 内存，并转换为 NumPy 数组。
-    pred = pred.cpu().numpy()
-    gt = gt.cpu().numpy()
+# def compute_dice(pred, gt):
+#     # 使用 .cpu().numpy() 方法将预测结果 pred 和真实标签 gt 
+#     # 从 GPU 内存移动到 CPU 内存，并转换为 NumPy 数组。
+#     pred = pred.cpu().numpy()
+#     gt = gt.cpu().numpy()
     
-    # 创建一个长度为 36 的零数组，用于存储每个类别的 Dice 系数。假设有 36 个类别。
-    dice = np.zeros(36)
-    for i in range(36):
-        # 使用 np.where(gt == i)[0] 找到真实标签中类别 i 的索引。
-        gt_indices = np.where(gt == i)[0]
-        # 使用 np.where(pred == i)[0] 找到预测结果中类别 i 的索引。
-        pred_indices = np.where(pred == i)[0]
-        # 使用 np.intersect1d(gt_indices, pred_indices) 找到真实标签和预测结果中类别 i 的交集索引。
-        # 计算类别 i 的 Dice 系数
-        dice[i] = 2 * len(np.intersect1d(gt_indices, pred_indices))/(len(gt_indices) + len(pred_indices))
-    return dice
+#     # 创建一个长度为 36 的零数组，用于存储每个类别的 Dice 系数。假设有 36 个类别。
+#     dice = np.zeros(36)
+#     for i in range(36):
+#         # 使用 np.where(gt == i)[0] 找到真实标签中类别 i 的索引。
+#         gt_indices = np.where(gt == i)[0]
+#         # 使用 np.where(pred == i)[0] 找到预测结果中类别 i 的索引。
+#         pred_indices = np.where(pred == i)[0]
+#         # 使用 np.intersect1d(gt_indices, pred_indices) 找到真实标签和预测结果中类别 i 的交集索引。
+#         # 计算类别 i 的 Dice 系数
+#         dice[i] = 2 * len(np.intersect1d(gt_indices, pred_indices))/(len(gt_indices) + len(pred_indices))
+#     return dice
+
+def compute_mae(pred, gt):
+    #### Verify whether it is reasonable
+    pred = pred.cpu().numpy()
+    gt = gt.cpu().numpy()    
+
+    mae = np.mean(np.abs(pred - gt))
+    return mae
 
 
 def val_during_training(dataloader):
@@ -169,7 +180,8 @@ def val_during_training(dataloader):
     model.eval()
 
     # 创建一个零数组 dice_all，用于存储每个批次和每个类别的 Dice 系数。假设有 36 个类别，len(dataloader) 是验证数据集的批次数。
-    dice_all = np.zeros((len(dataloader),36))
+    # dice_all = np.zeros((len(dataloader),36))
+    mae_all = np.zeros((len(dataloader),36))
     # 使用 enumerate 遍历 dataloader 中的每个批次
     for batch_idx, (data, target) in enumerate(dataloader):
         # data.squeeze() 和 target.squeeze()：移除维度为 1 的维度。
@@ -183,26 +195,28 @@ def val_during_training(dataloader):
         # 使用 prediction.max(1)[1] 找到预测结果中每个像素的最大值索引，即预测的类别。    
         prediction = prediction.max(1)[1]
         # 计算当前批次的 Dice 系数，并存储在 dice_all 数组中。
-        dice_all[batch_idx,:] = compute_dice(prediction, target)
+        # dice_all[batch_idx,:] = compute_dice(prediction, target)
+        mae_all[batch_idx,:] = compute_mae(prediction, target) # By Jiale
 
-    return dice_all
+    # return dice_all
+    return mae_all
 
 
-train_dice = [0, 0, 0, 0, 0]
+train_mae = [0, 0, 0, 0, 0]
 # 循环100个训练周期
 for epoch in range(100):
     
     # 调用 val_during_training 函数计算训练集的 Dice 系数
     train_dc = val_during_training(train_dataloader)
     # 打印训练集的平均 Dice 系数以及每个类别的平均 Dice 系数
-    print("train Dice: ", np.mean(train_dc, axis=0))
-    print("train_dice, mean, std: ", np.mean(train_dc), np.std(np.mean(train_dc, 1)))
+    print("train mae: ", np.mean(train_dc, axis=0))
+    print("train_mae, mean, std: ", np.mean(train_dc), np.std(np.mean(train_dc, 1)))
     
     # 验证验证集的 Dice 系数
     val_dc = val_during_training(val_dataloader)
     # 打印验证集的平均 Dice 系数以及每个类别的平均 Dice 系数
-    print("val Dice: ", np.mean(val_dc, axis=0))
-    print("val_dice, mean, std: ", np.mean(val_dc), np.std(np.mean(val_dc, 1)))
+    print("val mae: ", np.mean(val_dc, axis=0))
+    print("val_mae, mean, std: ", np.mean(val_dc), np.std(np.mean(val_dc, 1)))
     # 使用 TensorBoard 的 writer 记录训练集和验证集的平均 Dice 系数。
     # writer.add_scalars('data/Dice', {'train': np.mean(train_dc), 'val':  np.mean(val_dc)}, epoch)    
 
@@ -228,11 +242,11 @@ for epoch in range(100):
         # writer.add_scalar('Train/Loss', loss, epoch*len(train_dataloader) + batch_idx)
 
     # 将当前周期的训练集平均 Dice 系数存储在 train_dice 数组中
-    train_dice[epoch % 5] = np.mean(train_dc)
+    train_mae[epoch % 5] = np.mean(train_dc)
     # 打印最近五个周期的训练集 Dice 系数
-    print("last five train Dice: ",train_dice)
+    print("last five train mae: ",train_mae)
     # 如果最近五个周期的 Dice 系数的标准差小于等于0.00001，保存模型并结束训练
-    if np.std(np.array(train_dice)) <= 0.00001:
+    if np.std(np.array(train_mae)) <= 0.00001:
         torch.save(model.state_dict(), os.path.join('trained_models', model_name+'_'+str(fold)+"_final.pkl"))
         break
     # 否则，每个周期结束后保存一次模型
