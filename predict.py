@@ -21,20 +21,20 @@ from sphericalunet.utils.vtk import read_vtk, write_vtk, resample_label
 from sphericalunet.utils.utils import get_par_fs_lookup_table
 from sphericalunet.utils.interp_numpy import resampleSphereSurf
 
-# class BrainSphere(torch.utils.data.Dataset):
+class BrainSphere(torch.utils.data.Dataset):
 
-#     def __init__(self, root1):
+    def __init__(self, root1):
 
-#         self.files = sorted(glob.glob(os.path.join(root1, '*.vtk')))    
+        self.files = sorted(glob.glob(os.path.join(root1, '*.vtk')))    
 
-#     def __getitem__(self, index):
-#         file = self.files[index]
-#         data = read_vtk(file)
+    def __getitem__(self, index):
+        file = self.files[index]
+        data = read_vtk(file)
        
-#         return data, file
+        return data, file
 
-#     def __len__(self):
-#         return len(self.files)
+    def __len__(self):
+        return len(self.files)
 
 
 def inference(curv, sulc, model):
@@ -48,18 +48,6 @@ def inference(curv, sulc, model):
     pred = prediction.max(1)[1]
     pred = pred.cpu().numpy()
     return pred
-
-# def inference(features, model):
-#     # 归一化特征
-#     feat_max = [1.2, 13.7]
-#     for i in range(features.shape[1]):
-#         features[:,i] = features[:, i]/feat_max[i]
-#     features = features.to(device)
-#     with torch.no_grad():
-#         prediction = model(features)
-#     pred = prediction.max(1)[1]
-#     pred = pred.cpu().numpy()
-#     return pred
 
 
 if __name__ == "__main__":    
@@ -98,11 +86,9 @@ if __name__ == "__main__":
         out_file = in_file[0:-4] + '.parc.vtk'
     
     if level == '7':
-        # model = Unet_40k(2, 36)
-        model = Unet_40k(3, 36)
-        # model_path = '40k_curv_sulc.pkl'
-        model_path = 'Unet_40k_1_final.pkl'
-
+        model = Unet_40k(2, 1)
+        # model_path = 'Unet_40k_1_final.pkl'
+        model_path = 'Unet_40k_1.pkl'
         n_vertices = 40962
     else:
         model = Unet_160k(2, 36)
@@ -116,61 +102,34 @@ if __name__ == "__main__":
     model.eval()
        
     # par_36_to_fs_vec = get_par_36_to_fs_vec()
+    
     par_36_to_fs_vec = get_par_fs_lookup_table()[0]
 
-    # template = read_vtk('neigh_indices/sphere_' + str(n_vertices) + '_rotated_0.vtk')
+    template = read_vtk('neigh_indices/sphere_' + str(n_vertices) + '_rotated_0.vtk')
     # template = read_vtk('neigh_indices_raw/template.vtk')
 
     if in_file is not None:
         orig_surf = read_vtk(in_file)
         curv_temp = orig_surf['curv']
         if len(curv_temp) != n_vertices:
-            # sucu = resampleSphereSurf(orig_surf['vertices'], template['vertices'], 
-            #                           np.concatenate((orig_surf['sulc'][:,np.newaxis], 
-            #                                           orig_surf['curv'][:,np.newaxis]),
-            #                                          axis=1))
-
-            sucu = np.concatenate((orig_surf['sulc'][:,np.newaxis], 
+            sucu = resampleSphereSurf(orig_surf['vertices'], template['vertices'], 
+                                      np.concatenate((orig_surf['sulc'][:,np.newaxis], 
                                                       orig_surf['curv'][:,np.newaxis]),
-                                                     axis=1)
+                                                     axis=1))
             sulc = sucu[:,0]
             curv = sucu[:,1]
         else:
              curv = orig_surf['curv'][0:n_vertices]
              sulc = orig_surf['sulc'][0:n_vertices]
-        
+
         curv = torch.from_numpy(curv).unsqueeze(1) 
         sulc = torch.from_numpy(sulc).unsqueeze(1)
         
         pred = inference(curv, sulc, model)
         pred = par_36_to_fs_vec[pred]
         
-        # orig_lbl = resample_label(template['vertices'], orig_surf['vertices'], pred)
-        orig_lbl = pred
+        orig_lbl = resample_label(template['vertices'], orig_surf['vertices'], pred)
+        # orig_lbl = pred
 
         orig_surf['par_fs_vec'] = orig_lbl
         write_vtk(orig_surf, out_file)
-
-    # if in_file is not None:
-    #     orig_surf = read_vtk(in_file)
-    #     if len(orig_surf['vertices']) != n_vertices:
-    #         raise ValueError("Input surface does not match the specified resolution level.")
-
-    #     # 检查并获取存在的特征
-    #     features_list = []
-    #     for key in ['curv', 'sulc']:
-    #         if key in orig_surf:
-    #             features_list.append(orig_surf[key][:, np.newaxis])
-        
-    #     if not features_list:
-    #         raise ValueError("No valid features found in the input file.")
-        
-    #     features = np.concatenate(features_list, axis=1)
-        
-    #     features = torch.from_numpy(features).float()
-        
-    #     pred = inference(features, model)
-    #     pred = par_36_to_fs_vec[pred]
-        
-    #     orig_surf['par_fs_vec'] = pred
-    #     write_vtk(orig_surf, out_file)
