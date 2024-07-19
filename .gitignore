@@ -12,3 +12,5 @@ Dataset_npy/
 train_desktop.py
 Test/
 train_ubuntu.py
+
+vtk_files/

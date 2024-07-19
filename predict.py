@@ -88,7 +88,7 @@ if __name__ == "__main__":
     if level == '7':
         model = Unet_40k(2, 1)
         # model_path = 'Unet_40k_1_final.pkl'
-        model_path = 'Unet_40k_1.pkl'
+        model_path = 'Unet_40k_3.pkl'
         n_vertices = 40962
     else:
         model = Unet_160k(2, 36)
