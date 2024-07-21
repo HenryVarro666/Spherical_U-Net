@@ -179,8 +179,10 @@ def train_step(data, target):
 
 def compute_mae(pred, gt):
     #### Verify whether it is reasonable
-    pred = pred.cpu().numpy()
-    gt = gt.cpu().numpy()    
+    # pred = pred.cpu().numpy()
+    # gt = gt.cpu().numpy()   
+    pred = pred.cpu().numpy().flatten()
+    gt = gt.cpu().numpy().flatten()
 
     mae = np.mean(np.abs(pred - gt))
     return mae
@@ -192,7 +194,9 @@ def val_during_training(dataloader):
 
     # 创建一个零数组 dice_all，用于存储每个批次和每个类别的 Dice 系数。假设有 36 个类别，len(dataloader) 是验证数据集的批次数。
     # dice_all = np.zeros((len(dataloader),36))
-    mae_all = np.zeros((len(dataloader),36))
+
+    # mae_all = np.zeros((len(dataloader),36))
+    mae_all = []
     # 使用 enumerate 遍历 dataloader 中的每个批次
     for batch_idx, (data, target) in enumerate(dataloader):
         # # data.squeeze() 和 target.squeeze()：移除维度为 1 的维度。
@@ -203,17 +207,22 @@ def val_during_training(dataloader):
         # with torch.no_grad()：在上下文管理器 torch.no_grad() 中进行前向传播，禁用梯度计算，以减少内存使用和加速计算。
         with torch.no_grad():
             prediction = model(data)
-        # 使用 prediction.max(1)[1] 找到预测结果中每个像素的最大值索引，即预测的类别。    
-        prediction = prediction.max(1)[1]
+
+        # # 使用 prediction.max(1)[1] 找到预测结果中每个像素的最大值索引，即预测的类别。    
+        # prediction = prediction.max(1)[1]
+
         # 计算当前批次的 Dice 系数，并存储在 dice_all 数组中。
         # dice_all[batch_idx,:] = compute_dice(prediction, target)
 
-        target = target.view_as(prediction) # Fix 1
+        # target = target.view_as(prediction) # Fix 1
 
-        mae_all[batch_idx,:] = compute_mae(prediction, target) # By Jiale
+        prediction = prediction.view_as(target)  # Ensure the prediction shape matches the target shape
+
+        # mae_all[batch_idx,:] = compute_mae(prediction, target) # By Jiale
+        mae_all.append(compute_mae(prediction, target))
 
     # return dice_all
-    return mae_all
+    return np.array(mae_all)
 
 
 train_mae = [0, 0, 0, 0, 0]
