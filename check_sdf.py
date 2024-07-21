@@ -732,7 +732,7 @@ def save_sdf_vtk(surf_file, sphe_file, line_file, output_file, log_file):
         return
 
 if __name__ == '__main__':
-    root = '/mnt/d/Spherical_U-Net/vtk_files'
+    root = './For_Training'
     for subject in os.listdir(root):
         if subject.isdigit():
             for hemi in ['lh']:

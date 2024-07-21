@@ -150,3 +150,15 @@ Fenqiang Zhao, et.al. Spherical Deformable U-Net: Application to Cortical Surfac
  <a href="https://trackgit.com">
 <img src="https://us-central1-trackgit-analytics.cloudfunctions.net/token/ping/l8n7v6swzgmb1vrtk8l8" alt="trackgit-views" />
 </a>
+
+
+
+
+--------------------------
+### Functions
+
+- check_sdf.py
+  calculate SDF value on the **sphere** and then add to **surf** vtk
+
+- mv_hemi_npy.py
+  archive npz files to six folders, lh & rh
