@@ -9,7 +9,7 @@ example_vtk.py
 Test_lj/
 Test1/
 Dataset_npy/
-train_desktop.py
+# train_desktop.py
 Test/
 # train_ubuntu.py
 Test1.zip/
