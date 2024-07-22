@@ -254,7 +254,7 @@ from model import Unet_40k, Unet_160k
 """ hyper-parameters """
 cuda = torch.device('cuda:0')
 batch_size = 1
-fold = 1  # 1,2,3
+fold = 3  # 1,2,3
 model_name = 'Unet_40k'  # 'Unet_40k', 'Unet_160k'
 up_layer = 'upsample_interpolation'  # 'upsample_interpolation', 'upsample_fixindex'
 in_channels = 2
