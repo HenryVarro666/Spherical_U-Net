@@ -153,10 +153,12 @@ if __name__ == "__main__":
     # 找到前 5% 最低值的阈值
     # threshold = np.percentile(pred, 5)
 
-    threshold = np.percentile(pred, 10)
+    threshold = np.percentile(pred, 30)
 
     
     # 修改预测结果，使得前 5% 最低值设为 0，其他值设为 1
+    # binary_pred = np.where(pred <= 0, 0, 1).flatten()
+
     binary_pred = np.where(pred <= threshold, 0, 1).flatten()
     
     # 更新原始表面数据
