@@ -153,7 +153,7 @@ if __name__ == "__main__":
     # 找到前 5% 最低值的阈值
     # threshold = np.percentile(pred, 5)
 
-    threshold = np.percentile(pred, 30)
+    threshold = np.percentile(pred, 0)
 
     
     # 修改预测结果，使得前 5% 最低值设为 0，其他值设为 1

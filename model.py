@@ -113,7 +113,8 @@ class Unet_40k(nn.Module):
 
         chs = [in_ch, 32, 64, 128, 256, 512]
         
-        conv_layer = onering_conv_layer
+        # conv_layer = onering_conv_layer
+        conv_layer = onering_conv_layer_batch
 
         self.down1 = down_block(conv_layer, chs[0], chs[1], neigh_orders[0], None, True)
         self.down2 = down_block(conv_layer, chs[1], chs[2], neigh_orders[1], neigh_orders[0])
