@@ -97,7 +97,8 @@ print("{} paramerters in total".format(sum(x.numel() for x in model.parameters()
 model.cuda(cuda)
 
 # criterion = nn.MSELoss()
-criterion = nn.CrossEntropyLoss()
+# criterion = nn.CrossEntropyLoss()
+criterion = nn.BCEWithLogitsLoss()
 
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
@@ -244,9 +245,15 @@ for epoch in range(100):
     train_dice[epoch % 5] = np.mean(train_dc)
     # 打印最近五个周期的训练集 Dice 系数
     print("last five train Dice: ",train_dice)
+
+        # Define the output directory
+    output_dir = 'trained_models_2'
+
+    # Create the output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
     # 如果最近五个周期的 Dice 系数的标准差小于等于0.00001，保存模型并结束训练
     if np.std(np.array(train_dice)) <= 0.00001:
-        torch.save(model.state_dict(), os.path.join('trained_models_2', model_name+'_'+str(fold)+"_final.pkl"))
+        torch.save(model.state_dict(), os.path.join(output_dir, model_name+'_'+str(fold)+"_final.pkl"))
         break
     # 否则，每个周期结束后保存一次模型
-    torch.save(model.state_dict(), os.path.join('trained_models_2', model_name+'_'+str(fold)+".pkl"))
+    torch.save(model.state_dict(), os.path.join(output_dir, model_name+'_'+str(fold)+".pkl"))
