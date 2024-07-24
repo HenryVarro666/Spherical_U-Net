@@ -18,7 +18,7 @@ from model import Unet_40k, Unet_160k
 ################################################################
 """ hyper-parameters """
 cuda = torch.device('cuda:0')
-batch_size = 5
+batch_size = 1
 fold = 1  # 1,2,3
 model_name = 'Unet_40k'  # 'Unet_40k', 'Unet_160k'
 up_layer = 'upsample_interpolation'  # 'upsample_interpolation', 'upsample_fixindex'
@@ -167,7 +167,6 @@ def compute_dice(pred, gt):
     pred = pred.cpu().numpy()
     gt = gt.cpu().numpy()
     
-    # 创建一个长度为 36 的零数组，用于存储每个类别的 Dice 系数。假设有 36 个类别。
     dice = np.zeros(2)
     for i in range(2):
         # 使用 np.where(gt == i)[0] 找到真实标签中类别 i 的索引。
