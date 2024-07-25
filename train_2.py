@@ -247,7 +247,7 @@ for epoch in range(100):
     print("last five train Dice: ",train_dice)
 
         # Define the output directory
-    output_dir = 'trained_models_2'
+    output_dir = 'trained_models_3'
 
     # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
