@@ -47,6 +47,8 @@ class BrainSphere(torch.utils.data.Dataset):
         # 提取特征
         sulc = data['sulc']
         curv = data['curv']
+        # thickness = data['thickness']
+        # feats = np.stack((sulc, curv, thickness), axis=1)
         feats = np.stack((sulc, curv), axis=1)
 
         # 对每个特征独立归一化
