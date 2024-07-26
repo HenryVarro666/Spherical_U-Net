@@ -97,8 +97,8 @@ print("{} paramerters in total".format(sum(x.numel() for x in model.parameters()
 model.cuda(cuda)
 
 # criterion = nn.MSELoss()
-# criterion = nn.CrossEntropyLoss()
-criterion = nn.BCEWithLogitsLoss()
+criterion = nn.CrossEntropyLoss()
+# criterion = nn.BCEWithLogitsLoss()
 
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)

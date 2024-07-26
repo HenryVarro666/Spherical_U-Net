@@ -430,7 +430,7 @@ class upconv_layer_batch(nn.Module):
         self.upconv_top_index = upconv_top_index
         self.upconv_down_index = upconv_down_index
         # self.weight = nn.Linear(in_feats, 7 * out_feats)
-        self.weight = nn.Conv1d(in_feats, 7 * out_feats, kernel_size=1)
+        self.weight = nn.Conv1d(in_feats, 7 * out_feats, kernel_size=1) # ? from cc
         # self.norm = nn.BatchNorm1d(out_feats, momentum=0.15, affine=False, track_running_stats=True)
         # self.norm = nn.InstanceNorm1d(out_feats, momentum=0.15)
         
@@ -451,7 +451,7 @@ class upconv_layer_batch(nn.Module):
         x = x.view(x.shape[0], self.out_feats, raw_nodes * 7)
         x1 = x[:, :, self.upconv_top_index]
         assert(x1.size() == torch.Size([x.shape[0], self.out_feats, raw_nodes]))
-        x2 = x[:, :, self.upconv_down_index].view(x.shape[0], self.out_feats, -1, 2)
+        x2 = x[:, :, self.upconv_down_index].view(x.shape[0], self.out_feats, -1, 2) # ? from cc
         x = torch.cat((x1,torch.mean(x2, 3)), 2)
         assert(x.size() == torch.Size([x.shape[0], self.out_feats, new_nodes]))
         # x = self.norm(x)
