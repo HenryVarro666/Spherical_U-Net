@@ -23,7 +23,7 @@ fold = 1  # 1,2,3
 model_name = 'Unet_40k'  # 'Unet_40k', 'Unet_160k'
 up_layer = 'upsample_interpolation'  # 'upsample_interpolation', 'upsample_fixindex'
 in_channels = 2
-out_channels = 1  # by Jiale
+out_channels = 3  # by Jiale
 learning_rate = 0.001
 momentum = 0.99
 # 权重衰减（L2 正则化）系数，用于防止过拟合
@@ -37,7 +37,7 @@ class BrainSphere(torch.utils.data.Dataset):
     def __init__(self, *data_dirs):
         self.data_files = []
         for data_dir in data_dirs:
-            files = sorted(glob.glob(os.path.join(data_dir, '*_linemask.npz')))
+            files = sorted(glob.glob(os.path.join(data_dir, '*_linemask_skeleton.npz')))
             self.data_files.extend(files)
 
     def __getitem__(self, index):
@@ -53,11 +53,16 @@ class BrainSphere(torch.utils.data.Dataset):
         feat_max = np.max(feats, axis=0, keepdims=True)
         feats = feats / feat_max
 
-        # 提取标签
         line_mask = data['line_mask']
         line_mask = np.squeeze(line_mask)
 
-        return torch.tensor(feats, dtype=torch.float32), torch.tensor(line_mask, dtype=torch.float32)
+        line_data_mask = data['line_data_mask']
+        line_data_mask = np.squeeze(line_data_mask)
+
+        label = np.where(line_data_mask != 0, line_data_mask, line_mask)
+        # label = np.expand_dims(label, axis=0)  # Add a channel dimension if necessary
+
+        return torch.tensor(feats, dtype=torch.float32), torch.tensor(label, dtype=torch.long)
 
     def __len__(self):
         return len(self.data_files)
@@ -108,7 +113,9 @@ def train_step(data, target):
     model.train()
     data, target = data.cuda(cuda), target.cuda(cuda)
     prediction = model(data)
-    target = target.view_as(prediction)  # 确保形状一致
+    # target = target.view_as(prediction)  # 确保形状一致
+    target = target.squeeze(1)  # Remove the channel dimension if it exists
+
     loss = criterion(prediction, target)
     optimizer.zero_grad()
     loss.backward()
