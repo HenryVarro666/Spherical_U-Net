@@ -37,7 +37,7 @@ class BrainSphere(torch.utils.data.Dataset):
     def __init__(self, *data_dirs):
         self.data_files = []
         for data_dir in data_dirs:
-            files = sorted(glob.glob(os.path.join(data_dir, '*_label_mask_1ring.npz')))
+            files = sorted(glob.glob(os.path.join(data_dir, '*_linemask.npz')))
             self.data_files.extend(files)
 
     def __getitem__(self, index):
@@ -47,8 +47,6 @@ class BrainSphere(torch.utils.data.Dataset):
         # 提取特征
         sulc = data['sulc']
         curv = data['curv']
-        # thickness = data['thickness']
-        # feats = np.stack((sulc, curv, thickness), axis=1)
         feats = np.stack((sulc, curv), axis=1)
 
         # 对每个特征独立归一化
@@ -56,7 +54,7 @@ class BrainSphere(torch.utils.data.Dataset):
         feats = feats / feat_max
 
         # 提取标签
-        line_mask = data['label_mask']
+        line_mask = data['line_mask']
         line_mask = np.squeeze(line_mask)
 
         return torch.tensor(feats, dtype=torch.float32), torch.tensor(line_mask, dtype=torch.float32)
@@ -99,12 +97,8 @@ print("{} paramerters in total".format(sum(x.numel() for x in model.parameters()
 model.cuda(cuda)
 
 # criterion = nn.MSELoss()
-
-
-# criterion = nn.CrossEntropyLoss()
-
-
-criterion = nn.BCEWithLogitsLoss()
+criterion = nn.CrossEntropyLoss()
+# criterion = nn.BCEWithLogitsLoss()
 
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
@@ -120,52 +114,6 @@ def train_step(data, target):
     loss.backward()
     optimizer.step()
     return loss.item()
-
-# def compute_mae(pred, gt):
-#     pred = pred.cpu().numpy().flatten()
-#     gt = gt.cpu().numpy().flatten()
-#     mae = np.mean(np.abs(pred - gt))
-#     return mae
-
-# def val_during_training(dataloader):
-#     model.eval()
-#     mae_all = []
-#     for batch_idx, (data, target) in enumerate(dataloader):
-#         data = data.squeeze()
-#         target = target.squeeze()
-#         data, target = data.cuda(cuda), target.cuda(cuda)
-#         with torch.no_grad():
-#             prediction = model(data)
-#         prediction = prediction.view_as(target)
-#         mae_all.append(compute_mae(prediction, target))
-#     return np.array(mae_all)
-
-# train_mae = [0, 0, 0, 0, 0]
-# for epoch in range(100):
-#     train_dc = val_during_training(train_dataloader)
-#     train_mean = np.mean(train_dc, axis=0)
-#     train_std = np.std(train_mean)
-#     print("train_mae, mean, std:", np.mean(train_dc), train_std)
-    
-#     val_dc = val_during_training(val_dataloader)
-#     val_mean = np.mean(val_dc)
-#     val_std = np.std(val_mean)
-#     print("val_mae, mean, std:", val_mean, val_std)
-#     writer.add_scalars('data/mae', {'train': np.mean(train_dc), 'val': np.mean(val_dc)}, epoch)
-    
-#     scheduler.step(np.mean(val_dc))
-#     print("learning rate = {}".format(optimizer.param_groups[0]['lr']))
-    
-#     for batch_idx, (data, target) in enumerate(train_dataloader):
-#         data = data.squeeze()
-#         target = target.squeeze()
-#         loss = train_step(data, target)
-#         print("[{}:{}/{}]  LOSS={:.4}".format(epoch, batch_idx, len(train_dataloader), loss))
-#         writer.add_scalar('Train/Loss', loss, epoch * len(train_dataloader) + batch_idx)
-    
-#     train_mae[epoch % 5] = np.mean(train_dc)
-#     print("last five train mae:", train_mae)
-#     torch.save(model.state_dict(), os.path.join('trained_models_2', model_name + '_' + str(fold) + ".pkl"))
 
 
 def compute_dice(pred, gt):
