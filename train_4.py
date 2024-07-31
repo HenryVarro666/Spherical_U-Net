@@ -23,7 +23,7 @@ fold = 1  # 1,2,3
 model_name = 'Unet_40k'  # 'Unet_40k', 'Unet_160k'
 up_layer = 'upsample_interpolation'  # 'upsample_interpolation', 'upsample_fixindex'
 in_channels = 2
-out_channels = 3  # by Jiale
+out_channels = 1  # by Jiale
 learning_rate = 0.001
 momentum = 0.99
 # 权重衰减（L2 正则化）系数，用于防止过拟合
@@ -62,7 +62,8 @@ class BrainSphere(torch.utils.data.Dataset):
         label = np.squeeze(label)
 
         # label = np.where(line_data_mask != 0, line_data_mask, line_mask)
-        label = np.expand_dims(label, axis=0)  # Add a channel dimension if necessary
+
+        # label = np.expand_dims(label, axis=0)  # Add a channel dimension if necessary
 
         return torch.tensor(feats, dtype=torch.float32), torch.tensor(label, dtype=torch.long)
 
@@ -131,8 +132,8 @@ def compute_dice(pred, gt):
     pred = pred.cpu().numpy()
     gt = gt.cpu().numpy()
     
-    dice = np.zeros(2)
-    for i in range(2):
+    dice = np.zeros(3)
+    for i in range(3):
         # 使用 np.where(gt == i)[0] 找到真实标签中类别 i 的索引。
         gt_indices = np.where(gt == i)[0]
         # 使用 np.where(pred == i)[0] 找到预测结果中类别 i 的索引。
@@ -147,7 +148,7 @@ def val_during_training(dataloader):
     model.eval()
 
     # 创建一个零数组 dice_all，用于存储每个批次和每个类别的 Dice 系数。假设有 36 个类别，len(dataloader) 是验证数据集的批次数。
-    dice_all = np.zeros((len(dataloader),2))
+    dice_all = np.zeros((len(dataloader),3))
     # 使用 enumerate 遍历 dataloader 中的每个批次
     for batch_idx, (data, target) in enumerate(dataloader):
         # data.squeeze() 和 target.squeeze()：移除维度为 1 的维度。
