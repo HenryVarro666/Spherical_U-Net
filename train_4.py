@@ -53,14 +53,16 @@ class BrainSphere(torch.utils.data.Dataset):
         feat_max = np.max(feats, axis=0, keepdims=True)
         feats = feats / feat_max
 
-        line_mask = data['line_mask']
-        line_mask = np.squeeze(line_mask)
+        # line_mask = data['line_mask']
+        # line_mask = np.squeeze(line_mask)
 
-        line_data_mask = data['line_data_mask']
-        line_data_mask = np.squeeze(line_data_mask)
+        # line_data_mask = data['line_data_mask']
+        # line_data_mask = np.squeeze(line_data_mask)
+        label = data['label']
+        label = np.squeeze(label)
 
-        label = np.where(line_data_mask != 0, line_data_mask, line_mask)
-        # label = np.expand_dims(label, axis=0)  # Add a channel dimension if necessary
+        # label = np.where(line_data_mask != 0, line_data_mask, line_mask)
+        label = np.expand_dims(label, axis=0)  # Add a channel dimension if necessary
 
         return torch.tensor(feats, dtype=torch.float32), torch.tensor(label, dtype=torch.long)
 

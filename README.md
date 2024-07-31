@@ -175,3 +175,9 @@ Fenqiang Zhao, et.al. Spherical Deformable U-Net: Application to Cortical Surfac
 ## 2
 torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 87.51 GiB (GPU 0; 47.50 GiB total capacity; 29.21 MiB already allocated; 46.95 GiB free; 46.00 MiB reserved in total by PyTorch) If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
 
+
+----
+## npz error
+
+Problem found in file: ./Test4/lh/fold1/130922.lh.InnerSurf.RegByFS.Resp40962_linemask_skeleton.npz
+Problem found in file: ./Test4/lh/fold5/130114.lh.InnerSurf.RegByFS.Resp40962_linemask_skeleton.npz
