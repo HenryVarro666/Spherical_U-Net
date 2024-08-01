@@ -2,7 +2,7 @@
 Author: HenryVarro666 1504517223@qq.com
 Date: 2024-08-01 11:55:26
 LastEditors: HenryVarro666 1504517223@qq.com
-LastEditTime: 2024-08-01 12:25:28
+LastEditTime: 2024-08-01 13:39:20
 FilePath: \Spherical_U-Net\predict_3.py
 '''
 #!/usr/bin/env python3
@@ -13,33 +13,33 @@ import argparse
 import numpy as np
 import os
 import cv2  # 添加OpenCV库
-from model import Unet_40k, Unet_160k
+from model import Unet_40k, Unet_160k, Unet_40k_batch
 from sphericalunet.utils.vtk import read_vtk, write_vtk, resample_label
 from sphericalunet.utils.interp_numpy import resampleSphereSurf
 from torch.nn.functional import sigmoid
 
-# def inference(curv, sulc, model, device):
-#     feats = torch.cat((curv, sulc), 1)
-#     feat_max = torch.tensor([1.2, 13.7], device=device)
-#     feats = feats / feat_max
-#     with torch.no_grad():
-#         feats = feats.unsqueeze(0)  # Add batch dimension
-#         prediction = model(feats)
-#         # prediction = sigmoid(prediction)
-#     return prediction.cpu().numpy()
-
 def inference(curv, sulc, model, device):
-    feats =torch.cat((curv, sulc), 1)
-    feat_max = [1.2, 13.7]
-    for i in range(feats.shape[1]):
-        feats[:,i] = feats[:, i]/feat_max[i]
-    feats = feats.to(device)
+    feats = torch.cat((curv, sulc), 1)
+    feat_max = torch.tensor([1.2, 13.7], device=device)
+    feats = feats / feat_max
     with torch.no_grad():
         feats = feats.unsqueeze(0)  # Add batch dimension
         prediction = model(feats)
-    pred = prediction.max(1)[1]
-    pred = pred.cpu().numpy()
-    return pred
+        # prediction = sigmoid(prediction)
+    return prediction.cpu().numpy()
+
+# def inference(curv, sulc, model, device):
+#     feats =torch.cat((curv, sulc), 1)
+#     feat_max = [1.2, 13.7]
+#     for i in range(feats.shape[1]):
+#         feats[:,i] = feats[:, i]/feat_max[i]
+#     feats = feats.to(device)
+#     with torch.no_grad():
+#         feats = feats.unsqueeze(0)  # Add batch dimension
+#         prediction = model(feats)
+#     # pred = prediction.max(1)[1]
+#     pred = pred.cpu().numpy()
+#     return pred
 
 # def connected_component_analysis(pred):
 #     # 将预测结果转换为二值图像
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     if out_file == '[input].parc.vtk':
         out_file = in_file.replace('.vtk', '.parc.vtk')
     
-    model = Unet_40k(2, 3) if level == '7' else Unet_160k(2, 1)
+    model = Unet_40k_batch(2, 3) if level == '7' else Unet_160k(2, 1)
     model_path = f'trained_models_3/Unet_{"40k_1_final.pkl" if level == "7" else "160k_curv_sulc.pkl"}'
     n_vertices = 40962 if level == '7' else 163842
     
@@ -102,10 +102,16 @@ if __name__ == "__main__":
     curv = torch.from_numpy(curv).unsqueeze(1).to(device)
     sulc = torch.from_numpy(sulc).unsqueeze(1).to(device)
 
+    # pred.shape = (1, 3, 40962)
     pred = inference(curv, sulc, model, device)
     # print(pred.shape)
 
-    pred = pred.reshape(-1)
-    orig_surf['gyralnet_prediction'] = pred
+    # 转换为 NumPy 数组并调整形状
+    pred_np = pred.squeeze(0)  # 转换为 (3, 40962)
+    pred_np = pred_np.transpose(1, 0)  # 转换为 (40962, 3)
+
+    # 获取每个顶点的预测类别
+    pred_classes = np.argmax(pred_np, axis=1)  # 形状为 (40962,)
+    orig_surf['gyralnet_prediction'] = pred_classes
 
     write_vtk(orig_surf, out_file)
