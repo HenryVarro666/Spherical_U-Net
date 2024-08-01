@@ -140,6 +140,6 @@ def create_folds(data_dir, num_folds=6):
 # 示例用法
 if __name__ == "__main__":
     # 硬编码的源文件夹路径
-    data_dir = './Test4'
+    data_dir = './Test3'
     
     create_folds(data_dir)

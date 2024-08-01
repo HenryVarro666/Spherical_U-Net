@@ -23,7 +23,7 @@ fold = 1  # 1,2,3
 model_name = 'Unet_40k'  # 'Unet_40k', 'Unet_160k'
 up_layer = 'upsample_interpolation'  # 'upsample_interpolation', 'upsample_fixindex'
 in_channels = 2
-out_channels = 1  # by Jiale
+out_channels = 3  # by Jiale
 learning_rate = 0.001
 momentum = 0.99
 # 权重衰减（L2 正则化）系数，用于防止过拟合
@@ -58,24 +58,35 @@ class BrainSphere(torch.utils.data.Dataset):
 
         # line_data_mask = data['line_data_mask']
         # line_data_mask = np.squeeze(line_data_mask)
-        label = data['label']
+        line_original_mask = data['line_original_mask']
+        line_mask = data['line_mask']
+        non_line_data = data['non_line_data']
+        label = np.stack((line_original_mask, line_mask, non_line_data), axis=0)
         label = np.squeeze(label)
+        label = label - 1
 
-        # label = np.where(line_data_mask != 0, line_data_mask, line_mask)
 
         # label = np.expand_dims(label, axis=0)  # Add a channel dimension if necessary
 
-        return torch.tensor(feats, dtype=torch.float32), torch.tensor(label, dtype=torch.long)
+        return torch.tensor(feats, dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
 
     def __len__(self):
         return len(self.data_files)
 
-fold1 = './Test4/lh/fold1'
-fold2 = './Test4/lh/fold2'
-fold3 = './Test4/lh/fold3'
-fold4 = './Test4/lh/fold4'
-fold5 = './Test4/lh/fold5'
-fold6 = './Test4/lh/fold6'
+# fold1 = './Test4/lh/fold1'
+# fold2 = './Test4/lh/fold2'
+# fold3 = './Test4/lh/fold3'
+# fold4 = './Test4/lh/fold4'
+# fold5 = './Test4/lh/fold5'
+# fold6 = './Test4/lh/fold6'
+
+fold1 = './Test3/lh/fold1'
+fold2 = './Test3/lh/fold2'
+fold3 = './Test3/lh/fold3'
+fold4 = './Test3/lh/fold4'
+fold5 = './Test3/lh/fold5'
+fold6 = './Test3/lh/fold6'
+
 
 if fold == 1:
     train_dataset = BrainSphere(fold3, fold6, fold2, fold5)
