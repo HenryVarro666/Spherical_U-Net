@@ -13,7 +13,7 @@ from tensorboardX import SummaryWriter  # type: ignore
 
 writer = SummaryWriter('log/a')
 
-from model import Unet_40k, Unet_160k
+from model import Unet_40k, Unet_160k, Unet_40k_batch
 
 ################################################################
 """ hyper-parameters """
@@ -52,6 +52,7 @@ class BrainSphere(torch.utils.data.Dataset):
         # 对每个特征独立归一化
         feat_max = np.max(feats, axis=0, keepdims=True)
         feats = feats / feat_max
+        # print(feats.shape)
 
         # # line_mask = data['line_mask']
         # # line_mask = np.squeeze(line_mask)
@@ -66,9 +67,9 @@ class BrainSphere(torch.utils.data.Dataset):
         # label = label - 1
 
         # 提取标签
-        one_hot_labels = data['line_original_mask']
+        one_hot_labels = data['one_hot_labels']
         label = np.squeeze(one_hot_labels)
-
+        # print(label.shape)
         # label = np.expand_dims(label, axis=0)  # Add a channel dimension if necessary
 
         return torch.tensor(feats, dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
@@ -109,7 +110,9 @@ val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size,
 ##########################################################################################################
 
 if model_name == 'Unet_40k':
-    model = Unet_40k(in_ch=in_channels, out_ch=out_channels)
+    # model = Unet_40k_batch(in_ch=in_channels, out_ch=out_channels)
+    model = Unet_40k_batch(in_ch=in_channels, out_ch=out_channels)
+
 elif model_name == 'Unet_160k':
     model = Unet_160k(in_ch=in_channels, out_ch=out_channels)
 else:
@@ -229,9 +232,9 @@ for epoch in range(100):
     # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
 
-    # # 如果最近五个周期的 Dice 系数的标准差小于等于0.00001，保存模型并结束训练
-    # if np.std(np.array(train_dice)) <= 0.00001:
-    #     torch.save(model.state_dict(), os.path.join(output_dir, model_name+'_'+str(fold)+"_final.pkl"))
-    #     break
+    # 如果最近五个周期的 Dice 系数的标准差小于等于0.00001，保存模型并结束训练
+    if np.std(np.array(train_dice)) <= 0.00001:
+        torch.save(model.state_dict(), os.path.join(output_dir, model_name+'_'+str(fold)+"_final.pkl"))
+        break
     # 否则，每个周期结束后保存一次模型
     torch.save(model.state_dict(), os.path.join(output_dir, model_name+'_'+str(fold)+".pkl"))
