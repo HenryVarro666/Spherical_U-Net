@@ -151,6 +151,8 @@ def save_line_mask_npy(feature_file, sphe_file, line_file, output_dir):
     # 提取顶点和面数据
     original_vertices = np.array(original_surface.points)
     original_faces = np.array(original_surface.faces)
+    # original_faces = np.array(original_surface.faces).reshape(-1, 4)[:, 1:]
+
 
     # 确保 faces 数组是正确的大小和格式
     faces = original_faces.reshape((-1, 4))
@@ -162,18 +164,14 @@ def save_line_mask_npy(feature_file, sphe_file, line_file, output_dir):
     original_curv = original_surface.point_data.get('curv', np.zeros(original_vertices.shape[0]))
     original_sulc = original_surface.point_data.get('sulc', np.zeros(original_vertices.shape[0]))
 
-    # 创建单独的标签数组
-    line_original_mask = np.zeros(original_vertices.shape[0], dtype=np.int32)
-    line_original_mask[line_indices] = 2
+    combined_mask = np.zeros(original_vertices.shape[0], dtype=np.int32)
+    combined_mask[line_mask == 1] = 1
+    combined_mask[line_indices] = 2
 
-    non_line_data = (line_original_mask == 0).astype(np.int32)
+    one_hot_labels = one_hot_encode(combined_mask, 3)
 
     # 确保输出目录存在
     os.makedirs(output_dir, exist_ok=True)
-
-    # one-hot编码
-    combined_mask = np.maximum(line_original_mask, line_mask)
-    one_hot_labels = one_hot_encode(combined_mask, 3)
 
     # 保存为 .npz 文件
     output_filename = os.path.join(output_dir, os.path.basename(feature_file).replace('.vtk', '_linemask_skeleton.npz'))
@@ -183,9 +181,7 @@ def save_line_mask_npy(feature_file, sphe_file, line_file, output_dir):
              faces=faces, 
              curv=original_curv, 
              sulc=original_sulc, 
-             line_original_mask=one_hot_labels,
-             line_mask=line_mask,
-             non_line_data=non_line_data)
+             one_hot_labels=one_hot_labels,)
 
     print(f'Saving {output_filename}')
 
