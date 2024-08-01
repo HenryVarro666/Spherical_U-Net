@@ -66,7 +66,7 @@ class BrainSphere(torch.utils.data.Dataset):
         # label = label - 1
 
         # 提取标签
-        one_hot_labels = data['one_hot_labels']
+        one_hot_labels = data['line_original_mask']
         label = np.squeeze(one_hot_labels)
 
         # label = np.expand_dims(label, axis=0)  # Add a channel dimension if necessary
@@ -130,8 +130,8 @@ def train_step(data, target):
     model.train()
     data, target = data.cuda(cuda), target.cuda(cuda)
     prediction = model(data)
-    # target = target.view_as(prediction)  # 确保形状一致
-    target = target.squeeze(1)  # Remove the channel dimension if it exists
+    target = target.view_as(prediction)  # 确保形状一致
+    # target = target.squeeze(1)  # Remove the channel dimension if it exists
 
     loss = criterion(prediction, target)
     optimizer.zero_grad()
@@ -224,11 +224,11 @@ for epoch in range(100):
     # 打印最近五个周期的训练集 Dice 系数
     print("last five train Dice: ",train_dice)
 
-        # Define the output directory
-    output_dir = 'trained_models_4'
-
+    # Define the output directory
+    output_dir = 'trained_models_3'
     # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
+
     # 如果最近五个周期的 Dice 系数的标准差小于等于0.00001，保存模型并结束训练
     if np.std(np.array(train_dice)) <= 0.00001:
         torch.save(model.state_dict(), os.path.join(output_dir, model_name+'_'+str(fold)+"_final.pkl"))
