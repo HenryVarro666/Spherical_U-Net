@@ -20,10 +20,12 @@ from model import Unet_40k, Unet_160k, Unet_40k_batch, Unet_40k_batch_2
 cuda = torch.device('cuda:0')
 batch_size = 4
 fold = 1  # 1,2,3
-model_name = 'Unet_40k'  # 'Unet_40k', 'Unet_160k'
+model_name = 'Unet_40k_batch_2'  # 'Unet_40k', 'Unet_160k'
 up_layer = 'upsample_interpolation'  # 'upsample_interpolation', 'upsample_fixindex'
 in_channels = 2
-out_channels = 2  # by Jiale
+# out_channels = 2  # by Jiale
+out_ch1 = 1
+out_ch2 = 1
 learning_rate = 0.001
 momentum = 0.99
 # 权重衰减（L2 正则化）系数，用于防止过拟合
@@ -44,12 +46,10 @@ class BrainSphere(torch.utils.data.Dataset):
         file = self.data_files[index]
         data = np.load(file, allow_pickle=True)
 
-        # 提取特征
         sulc = data['sulc']
         curv = data['curv']
         feats = np.stack((sulc, curv), axis=1)
 
-        # 对每个特征独立归一化
         feat_max = np.max(feats, axis=0, keepdims=True)
         feats = feats / feat_max
         # print(feats.shape)
@@ -95,12 +95,12 @@ val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size,
 
 ##########################################################################################################
 
-if model_name == 'Unet_40k':
+if model_name == 'Unet_40k_batch_2':
     # model = Unet_40k_batch(in_ch=in_channels, out_ch=out_channels)
-    model = Unet_40k_batch_2(in_ch=in_channels, out_ch1=out_channels, out_ch2=out_channels)
+    model = Unet_40k_batch_2(in_ch=in_channels, out_ch1=out_ch1, out_ch2=out_ch2)
 
 elif model_name == 'Unet_160k':
-    model = Unet_160k(in_ch=in_channels, out_ch=out_channels)
+    model = Unet_160k(in_ch=in_channels, out_ch=out_ch1)
 else:
     raise NotImplementedError('model name is wrong!')
 
@@ -111,7 +111,7 @@ model.cuda(cuda)
 
 
 criterion_reg = nn.MSELoss()
-criterion = nn.CrossEntropyLoss()
+criterion_cla = nn.CrossEntropyLoss()
 # criterion = nn.BCEWithLogitsLoss()
 # criterion_reg = nn.MSELoss()
 
@@ -121,17 +121,16 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.2, patience=1, verbose=True, threshold=0.0001, threshold_mode='rel', min_lr=0.000001)
 
-def train_step(data, target_cla, target_reg):
+def train_step(data, target_reg, target_cla):
     model.train()
-    data, target_cla, target_reg = data.cuda(cuda), target_cla.cuda(cuda), target_reg.cuda(cuda)
+    data, target_reg, target_cla = data.cuda(cuda), target_reg.cuda(cuda), target_cla.cuda(cuda)
     prediction_reg, prediction_cla = model(data)
     target_reg = target_reg.view_as(prediction_reg)  # 确保形状一致
     target_cla = target_cla.view_as(prediction_cla)  # 确保形状一致
-    # target = target.squeeze(1)  # Remove the channel dimension if it exists
 
     # hyper: weight for regression loss
     hyper = 0.1
-    loss = criterion(prediction_cla, target_cla) + hyper * criterion_reg(prediction_reg, target_reg)
+    loss = criterion_cla(prediction_cla, target_cla) + hyper * criterion_reg(prediction_reg, target_reg)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -139,8 +138,6 @@ def train_step(data, target_cla, target_reg):
 
 
 def compute_dice(pred, gt):
-    # 使用 .cpu().numpy() 方法将预测结果 pred 和真实标签 gt 
-    # 从 GPU 内存移动到 CPU 内存，并转换为 NumPy 数组。
     pred = pred.cpu().numpy()
     gt = gt.cpu().numpy()
     
@@ -155,33 +152,6 @@ def compute_dice(pred, gt):
         dice[i] = 2 * len(np.intersect1d(gt_indices, pred_indices))/(len(gt_indices) + len(pred_indices))
     return dice
 
-# def val_during_training(dataloader):
-#     # 将模型设置为评估模式。这会禁用 dropout 层和 batch normalization 层的训练行为
-#     model.eval()
-
-#     # 创建一个零数组 dice_all，用于存储每个批次和每个类别的 Dice 系数。假设有 36 个类别，len(dataloader) 是验证数据集的批次数。
-#     dice_all = np.zeros((len(dataloader),3))
-#     # 使用 enumerate 遍历 dataloader 中的每个批次
-#     # for batch_idx, (data, target_cla, target_reg) in enumerate(dataloader):
-#     for batch_idx, (data, target_cla, target_reg) in enumerate(dataloader):
-
-#         # data.squeeze() 和 target.squeeze()：移除维度为 1 的维度。
-#         data = data.squeeze()
-#         target_cla = target_cla.squeeze()
-#         target_reg = target_reg.squeeze()
-#         # 将数据和标签移动到 GPU 上
-#         data, target_cla, target_reg = data.cuda(cuda), target_cla.cuda(cuda), target_reg.cuda(cuda)
-#         # with torch.no_grad()：在上下文管理器 torch.no_grad() 中进行前向传播，禁用梯度计算，以减少内存使用和加速计算。
-#         with torch.no_grad():
-#             prediction_cla, prediction_reg = model(data)
-#         # 使用 prediction.max(1)[1] 找到预测结果中每个像素的最大值索引，即预测的类别。    
-#         prediction_cla = prediction_cla.max(1)[1]
-#         prediction_reg = prediction_reg.max(1)[1]
-#         # 计算当前批次的 Dice 系数，并存储在 dice_all 数组中。
-#         dice_all[batch_idx,:] = compute_dice(prediction_cla, target_cla)
-
-#     return dice_all
-
 def val_during_training(dataloader):
     # 将模型设置为评估模式。这会禁用 dropout 层和 batch normalization 层的训练行为
     model.eval()
@@ -191,19 +161,24 @@ def val_during_training(dataloader):
     mae_all = []
 
     # 使用 enumerate 遍历 dataloader 中的每个批次
-    for batch_idx, (data, target_cla, target_reg) in enumerate(dataloader):
-        # data.squeeze() 和 target.squeeze()：移除维度为 1 的维度。
-        data = data.squeeze()
-        target_cla = target_cla.squeeze()
-        target_reg = target_reg.squeeze()
+    for batch_idx, (data, target_reg, target_cla) in enumerate(dataloader):
 
         # 将数据和标签移动到 GPU 上
-        data, target_cla, target_reg = data.cuda(cuda), target_cla.cuda(cuda), target_reg.cuda(cuda)
+        data, target_reg, target_cla = data.cuda(cuda), target_reg.cuda(cuda), target_cla.cuda(cuda)
 
+        # data.squeeze() 和 target.squeeze()：移除维度为 1 的维度。
+        data = data.squeeze()
+        target_reg = target_reg.squeeze()
+        target_cla = target_cla.squeeze()
+        
         # with torch.no_grad()：在上下文管理器 torch.no_grad() 中进行前向传播，禁用梯度计算，以减少内存使用和加速计算。
         with torch.no_grad():
-            prediction_cla, prediction_reg = model(data)
+            prediction_reg, prediction_cla = model(data)
 
+        # 调整 target_reg 的形状以匹配 prediction_reg
+        if prediction_reg.shape != target_reg.shape:
+            target_reg = target_reg.view_as(prediction_reg)
+        
         # 使用 prediction.max(1)[1] 找到预测结果中每个像素的最大值索引，即预测的类别。    
         prediction_cla = prediction_cla.max(1)[1]
 
@@ -236,39 +211,30 @@ def evaluate_model(dataloader):
 
 
 train_dice = [0, 0, 0, 0, 0]
-# 循环100个训练周期
+min_epochs = 5  # 最少训练的周期数
 for epoch in range(100):
     
-    # 调用 val_during_training 函数计算训练集的 Dice 系数和 MAE
     train_dc, train_mae = val_during_training(train_dataloader)
-    # 打印训练集的平均 Dice 系数、每个类别的平均 Dice 系数和 MAE
     print("train Dice: ", np.mean(train_dc, axis=0))
     print("train_dice, mean, std: ", np.mean(train_dc), np.std(np.mean(train_dc, axis=0)))
     print("train MAE: ", np.mean(train_mae), "MAE std: ", np.std(train_mae))
     
-    # 调用 val_during_training 函数计算验证集的 Dice 系数和 MAE
     val_dc, val_mae = val_during_training(val_dataloader)
-    # 打印验证集的平均 Dice 系数、每个类别的平均 Dice 系数和 MAE
     print("val Dice: ", np.mean(val_dc, axis=0))
     print("val_dice, mean, std: ", np.mean(val_dc), np.std(np.mean(val_dc, axis=0)))
     print("val MAE: ", np.mean(val_mae), "MAE std: ", np.std(val_mae))
-    # 使用 TensorBoard 的 writer 记录训练集和验证集的平均 Dice 系数和 MAE
     writer.add_scalars('data/Dice', {'train': np.mean(train_dc), 'val':  np.mean(val_dc)}, epoch)    
     writer.add_scalars('data/MAE', {'train': np.mean(train_mae), 'val': np.mean(val_mae)}, epoch)
     
-    # 根据验证集的平均 Dice 系数调整学习率 
     scheduler.step(np.mean(val_dc))
-    # 打印当前学习率
     print("learning rate = {}".format(optimizer.param_groups[0]['lr']))
     
-    for batch_idx, (data, target_cla, target_reg) in enumerate(train_dataloader):
+    for batch_idx, (data, target_reg, target_cla) in enumerate(train_dataloader):
         # data.squeeze() 和 target.squeeze()：移除维度为 1 的维度。
         data = data.squeeze()
-        target_cla = target_cla.squeeze()
         target_reg = target_reg.squeeze()
-        # 将数据和标签移动到 GPU 上
-        data, target_cla, target_reg = data.cuda(cuda), target_cla.cuda(cuda), target_reg.cuda(cuda)
-        # 调用 train_step 函数进行前向传播、计算损失、反向传播和参数更新
+        target_cla = target_cla.squeeze()
+        data, target_reg, target_cla = data.cuda(cuda), target_reg.cuda(cuda), target_cla.cuda(cuda)
         loss = train_step(data, target_cla, target_reg)
 
         # 打印当前批次的损失
@@ -288,8 +254,10 @@ for epoch in range(100):
     os.makedirs(output_dir, exist_ok=True)
 
     # 如果最近五个周期的 Dice 系数的标准差小于等于0.00001，保存模型并结束训练
-    if np.std(np.array(train_dice)) <= 0.00001:
+    if epoch >= min_epochs and np.std(np.array(train_dice)) <= 0.00001:
+        print(f"Training stopped early at epoch {epoch} due to low standard deviation in Dice scores.")
         torch.save(model.state_dict(), os.path.join(output_dir, model_name+'_'+str(fold)+"_final.pkl"))
         break
     # 否则，每个周期结束后保存一次模型
     torch.save(model.state_dict(), os.path.join(output_dir, model_name+'_'+str(fold)+".pkl"))
+
