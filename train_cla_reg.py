@@ -255,7 +255,6 @@ for epoch in range(100):
 
     # 如果最近五个周期的 Dice 系数的标准差小于等于0.00001，保存模型并结束训练
     if epoch >= min_epochs and np.std(np.array(train_dice)) <= 0.00001:
-        print(f"Training stopped early at epoch {epoch} due to low standard deviation in Dice scores.")
         torch.save(model.state_dict(), os.path.join(output_dir, model_name+'_'+str(fold)+"_final.pkl"))
         break
     # 否则，每个周期结束后保存一次模型
