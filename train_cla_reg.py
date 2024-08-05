@@ -23,7 +23,7 @@ fold = 1  # 1,2,3
 model_name = 'Unet_40k'  # 'Unet_40k', 'Unet_160k'
 up_layer = 'upsample_interpolation'  # 'upsample_interpolation', 'upsample_fixindex'
 in_channels = 2
-out_channels = 3  # by Jiale
+out_channels = 1  # by Jiale
 learning_rate = 0.001
 momentum = 0.99
 # 权重衰减（L2 正则化）系数，用于防止过拟合
@@ -55,12 +55,15 @@ class BrainSphere(torch.utils.data.Dataset):
         # print(feats.shape)
 
         # 提取标签
-        one_hot_labels = data['one_hot_labels']
-        label = np.squeeze(one_hot_labels)
+        line_mask = data['line_mask']
+        label_cla = np.squeeze(line_mask)
+
+        ring_distances = data['ring_distances']
+        label_reg = np.squeeze(ring_distances)
         # print(label.shape)
         # label = np.expand_dims(label, axis=0)  # Add a channel dimension if necessary
 
-        return torch.tensor(feats, dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
+        return torch.tensor(feats, dtype=torch.float32), torch.tensor(label_cla, dtype=torch.float32), torch.tensor(label_reg, dtype=torch.float32)
 
     def __len__(self):
         return len(self.data_files)
@@ -217,7 +220,7 @@ for epoch in range(100):
     print("last five train Dice: ",train_dice)
 
     # Define the output directory
-    output_dir = 'trained_models_3'
+    output_dir = 'trained_models_cla_reg'
     # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
 
