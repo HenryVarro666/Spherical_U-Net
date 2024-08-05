@@ -13,7 +13,7 @@ from tensorboardX import SummaryWriter  # type: ignore
 
 writer = SummaryWriter('log/a')
 
-from model import Unet_40k, Unet_160k, Unet_40k_batch
+from model import Unet_40k, Unet_160k, Unet_40k_batch, Unet_40k_batch_2
 
 ################################################################
 """ hyper-parameters """
@@ -65,19 +65,12 @@ class BrainSphere(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.data_files)
 
-# fold1 = './Test4/lh/fold1'
-# fold2 = './Test4/lh/fold2'
-# fold3 = './Test4/lh/fold3'
-# fold4 = './Test4/lh/fold4'
-# fold5 = './Test4/lh/fold5'
-# fold6 = './Test4/lh/fold6'
-
-fold1 = './Test3/lh/fold1'
-fold2 = './Test3/lh/fold2'
-fold3 = './Test3/lh/fold3'
-fold4 = './Test3/lh/fold4'
-fold5 = './Test3/lh/fold5'
-fold6 = './Test3/lh/fold6'
+fold1 = './Test_cla_reg/lh/fold1'
+fold2 = './Test_cla_reg/lh/fold2'
+fold3 = './Test_cla_reg/lh/fold3'
+fold4 = './Test_cla_reg/lh/fold4'
+fold5 = './Test_cla_reg/lh/fold5'
+fold6 = './Test_cla_reg/lh/fold6'
 
 
 if fold == 1:
@@ -109,10 +102,15 @@ else:
 print("{} paramerters in total".format(sum(x.numel() for x in model.parameters())))
 model.cuda(cuda)
 
+weight = np.array([426, 413]).astype(np.float32) / (426+413)
+
+
 # criterion = nn.MSELoss()
 criterion = nn.CrossEntropyLoss()
 # criterion = nn.BCEWithLogitsLoss()
-criterion_reg = nn.CrossEntropyLoss()
+criterion_reg = nn.MSELoss()
+
+# criterion = nn.FocalLoss(gamma=1.0, alpha=weight)
 
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
