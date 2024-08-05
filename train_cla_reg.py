@@ -128,7 +128,7 @@ def train_step(data, target_cla, target_reg):
     # target = target.squeeze(1)  # Remove the channel dimension if it exists
 
     # hyper: weight for regression loss
-    hyper = 0.1
+    hyper = 0.01
     loss = criterion(prediction_cla, target_cla) + hyper * criterion_reg(prediction_reg, target_reg)
     optimizer.zero_grad()
     loss.backward()
@@ -153,58 +153,111 @@ def compute_dice(pred, gt):
         dice[i] = 2 * len(np.intersect1d(gt_indices, pred_indices))/(len(gt_indices) + len(pred_indices))
     return dice
 
+# def val_during_training(dataloader):
+#     # 将模型设置为评估模式。这会禁用 dropout 层和 batch normalization 层的训练行为
+#     model.eval()
+
+#     # 创建一个零数组 dice_all，用于存储每个批次和每个类别的 Dice 系数。假设有 36 个类别，len(dataloader) 是验证数据集的批次数。
+#     dice_all = np.zeros((len(dataloader),3))
+#     # 使用 enumerate 遍历 dataloader 中的每个批次
+#     # for batch_idx, (data, target_cla, target_reg) in enumerate(dataloader):
+#     for batch_idx, (data, target_cla, target_reg) in enumerate(dataloader):
+
+#         # data.squeeze() 和 target.squeeze()：移除维度为 1 的维度。
+#         data = data.squeeze()
+#         target_cla = target_cla.squeeze()
+#         target_reg = target_reg.squeeze()
+#         # 将数据和标签移动到 GPU 上
+#         data, target_cla, target_reg = data.cuda(cuda), target_cla.cuda(cuda), target_reg.cuda(cuda)
+#         # with torch.no_grad()：在上下文管理器 torch.no_grad() 中进行前向传播，禁用梯度计算，以减少内存使用和加速计算。
+#         with torch.no_grad():
+#             prediction_cla, prediction_reg = model(data)
+#         # 使用 prediction.max(1)[1] 找到预测结果中每个像素的最大值索引，即预测的类别。    
+#         prediction_cla = prediction_cla.max(1)[1]
+#         prediction_reg = prediction_reg.max(1)[1]
+#         # 计算当前批次的 Dice 系数，并存储在 dice_all 数组中。
+#         dice_all[batch_idx,:] = compute_dice(prediction_cla, target_cla)
+
+#     return dice_all
+
 def val_during_training(dataloader):
     # 将模型设置为评估模式。这会禁用 dropout 层和 batch normalization 层的训练行为
     model.eval()
 
-    # 创建一个零数组 dice_all，用于存储每个批次和每个类别的 Dice 系数。假设有 36 个类别，len(dataloader) 是验证数据集的批次数。
-    dice_all = np.zeros((len(dataloader),3))
-    # 使用 enumerate 遍历 dataloader 中的每个批次
-    # for batch_idx, (data, target_cla, target_reg) in enumerate(dataloader):
-    for batch_idx, (data, target_cla, target_reg) in enumerate(dataloader):
+    # 用于存储每个批次的 Dice 系数和 MAE
+    dice_all = []
+    mae_all = []
 
+    # 使用 enumerate 遍历 dataloader 中的每个批次
+    for batch_idx, (data, target_cla, target_reg) in enumerate(dataloader):
         # data.squeeze() 和 target.squeeze()：移除维度为 1 的维度。
         data = data.squeeze()
         target_cla = target_cla.squeeze()
         target_reg = target_reg.squeeze()
+
         # 将数据和标签移动到 GPU 上
         data, target_cla, target_reg = data.cuda(cuda), target_cla.cuda(cuda), target_reg.cuda(cuda)
+
         # with torch.no_grad()：在上下文管理器 torch.no_grad() 中进行前向传播，禁用梯度计算，以减少内存使用和加速计算。
         with torch.no_grad():
             prediction_cla, prediction_reg = model(data)
+
         # 使用 prediction.max(1)[1] 找到预测结果中每个像素的最大值索引，即预测的类别。    
         prediction_cla = prediction_cla.max(1)[1]
-        prediction_reg = prediction_reg.max(1)[1]
-        # 计算当前批次的 Dice 系数，并存储在 dice_all 数组中。
-        dice_all[batch_idx,:] = compute_dice(prediction_cla, target_cla)
 
-    return dice_all
+        # 计算当前批次的 Dice 系数，并存储在 dice_all 列表中。
+        dice = compute_dice(prediction_cla, target_cla)
+        dice_all.append(dice)
+
+        # 计算当前批次的 MAE，并存储在 mae_all 列表中
+        mae = torch.mean(torch.abs(prediction_reg - target_reg)).item()
+        mae_all.append(mae)
+
+    # 将列表转换为 numpy 数组
+    dice_all = np.array(dice_all)
+    mae_all = np.array(mae_all)
+
+    return dice_all, mae_all
+
+# 调用 val_during_training 函数时处理返回的两个评估结果
+def evaluate_model(dataloader):
+    dice_all, mae_all = val_during_training(dataloader)
+
+    # 打印 Dice 系数的结果
+    print("Dice Coefficients: ", np.mean(dice_all, axis=0))
+    print("Mean Dice Coefficient: ", np.mean(dice_all))
+    print("Standard Deviation of Dice Coefficient: ", np.std(np.mean(dice_all, 1)))
+
+    # 打印 MAE 的结果
+    print("Mean Absolute Error (MAE): ", np.mean(mae_all))
+    print("Standard Deviation of MAE: ", np.std(mae_all))
+
 
 train_dice = [0, 0, 0, 0, 0]
 # 循环100个训练周期
 for epoch in range(100):
     
-    # 调用 val_during_training 函数计算训练集的 Dice 系数
-    train_dc = val_during_training(train_dataloader)
-    # 打印训练集的平均 Dice 系数以及每个类别的平均 Dice 系数
+    # 调用 val_during_training 函数计算训练集的 Dice 系数和 MAE
+    train_dc, train_mae = val_during_training(train_dataloader)
+    # 打印训练集的平均 Dice 系数、每个类别的平均 Dice 系数和 MAE
     print("train Dice: ", np.mean(train_dc, axis=0))
-    print("train_dice, mean, std: ", np.mean(train_dc), np.std(np.mean(train_dc, 1)))
+    print("train_dice, mean, std: ", np.mean(train_dc), np.std(np.mean(train_dc, axis=0)))
+    print("train MAE: ", np.mean(train_mae), "MAE std: ", np.std(train_mae))
     
-    # 验证验证集的 Dice 系数
-    val_dc = val_during_training(val_dataloader)
-    # 打印验证集的平均 Dice 系数以及每个类别的平均 Dice 系数
+    # 调用 val_during_training 函数计算验证集的 Dice 系数和 MAE
+    val_dc, val_mae = val_during_training(val_dataloader)
+    # 打印验证集的平均 Dice 系数、每个类别的平均 Dice 系数和 MAE
     print("val Dice: ", np.mean(val_dc, axis=0))
-    print("val_dice, mean, std: ", np.mean(val_dc), np.std(np.mean(val_dc, 1)))
-    # 使用 TensorBoard 的 writer 记录训练集和验证集的平均 Dice 系数。
+    print("val_dice, mean, std: ", np.mean(val_dc), np.std(np.mean(val_dc, axis=0)))
+    print("val MAE: ", np.mean(val_mae), "MAE std: ", np.std(val_mae))
+    # 使用 TensorBoard 的 writer 记录训练集和验证集的平均 Dice 系数和 MAE
     writer.add_scalars('data/Dice', {'train': np.mean(train_dc), 'val':  np.mean(val_dc)}, epoch)    
-
+    writer.add_scalars('data/MAE', {'train': np.mean(train_mae), 'val': np.mean(val_mae)}, epoch)
+    
     # 根据验证集的平均 Dice 系数调整学习率 
     scheduler.step(np.mean(val_dc))
     # 打印当前学习率
     print("learning rate = {}".format(optimizer.param_groups[0]['lr']))
-    
-#    dataiter = iter(train_dataloader)
-#    data, target = dataiter.next()
     
     for batch_idx, (data, target_cla, target_reg) in enumerate(train_dataloader):
         # data.squeeze() 和 target.squeeze()：移除维度为 1 的维度。
@@ -225,7 +278,7 @@ for epoch in range(100):
     # 将当前周期的训练集平均 Dice 系数存储在 train_dice 数组中
     train_dice[epoch % 5] = np.mean(train_dc)
     # 打印最近五个周期的训练集 Dice 系数
-    print("last five train Dice: ",train_dice)
+    print("last five train Dice: ", train_dice)
 
     # Define the output directory
     output_dir = 'trained_models_cla_reg'
