@@ -102,7 +102,7 @@ else:
 print("{} paramerters in total".format(sum(x.numel() for x in model.parameters())))
 model.cuda(cuda)
 
-weight = np.array([426, 413]).astype(np.float32) / (426+413)
+# weight = np.array([426, 413]).astype(np.float32) / (426+413)
 
 
 # criterion = nn.MSELoss()
