@@ -2,7 +2,7 @@
 Author: HenryVarro666 1504517223@qq.com
 Date: 2024-08-05 09:22:58
 LastEditors: HenryVarro666 1504517223@qq.com
-LastEditTime: 2024-08-05 09:42:25
+LastEditTime: 2024-08-05 11:02:44
 FilePath: \Spherical_U-Net\predict_cla_reg.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -14,7 +14,7 @@ import argparse
 import numpy as np
 import os
 import cv2  # 添加OpenCV库
-from model import Unet_40k, Unet_160k
+from model import Unet_40k, Unet_160k, Unet_40k_batch_2
 from sphericalunet.utils.vtk import read_vtk, write_vtk, resample_label
 from sphericalunet.utils.interp_numpy import resampleSphereSurf
 from torch.nn.functional import sigmoid
@@ -25,18 +25,18 @@ def inference(curv, sulc, model, device):
     feats = feats / feat_max
     with torch.no_grad():
         feats = feats.unsqueeze(0)  # Add batch dimension
-        prediction = model(feats)
-        prediction = sigmoid(prediction)
-    return prediction.cpu().numpy()
+        prediction_reg, predict_cla = model(feats)
+        # prediction = sigmoid(prediction)
+    return prediction_reg.cpu().numpy(), predict_cla.cpu().numpy()
 
-def connected_component_analysis(pred):
-    # 将预测结果转换为二值图像
-    pred_binary = np.array(pred > 0.5, dtype=np.uint8)
-    # 使用OpenCV的connectedComponents函数进行连通域分析
-    num_labels, labels_im = cv2.connectedComponents(pred_binary)
-    # num_labels, labels_im = cv2.connectedComponents(pred)
+# def connected_component_analysis(pred):
+#     # 将预测结果转换为二值图像
+#     pred_binary = np.array(pred > 0.5, dtype=np.uint8)
+#     # 使用OpenCV的connectedComponents函数进行连通域分析
+#     num_labels, labels_im = cv2.connectedComponents(pred_binary)
+#     # num_labels, labels_im = cv2.connectedComponents(pred)
 
-    return num_labels, labels_im
+#     return num_labels, labels_im
 
 if __name__ == "__main__":    
     parser = argparse.ArgumentParser(description='Predict the parcellation maps with 36 regions from the input surfaces',
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     if out_file == '[input].parc.vtk':
         out_file = in_file.replace('.vtk', '.parc.vtk')
     
-    model = Unet_40k(2, 3) if level == '7' else Unet_160k(2, 1)
+    model = Unet_40k_batch_2(2, 1, 1) if level == '7' else Unet_160k(2, 1)
     model_path = f'trained_models_cla_reg/Unet_{"40k_1_final.pkl" if level == "7" else "160k_curv_sulc.pkl"}'
     n_vertices = 40962 if level == '7' else 163842
     
@@ -90,18 +90,12 @@ if __name__ == "__main__":
     curv = torch.from_numpy(curv).unsqueeze(1).to(device)
     sulc = torch.from_numpy(sulc).unsqueeze(1).to(device)
 
-    pred = inference(curv, sulc, model, device)
+    pred_reg, pred_cla = inference(curv, sulc, model, device)
 
-    pred_prob = pred.squeeze()  # (N, 1) -> (N)
-    pred = np.array(pred_prob > 0.5, dtype=np.int32)
+    pred_reg = pred_reg.squeeze()  # (N, 1) -> (N)
+    pred_cla = pred_cla.squeeze()  # (N, 1) -> (N)
 
-    num_labels, labels_im = connected_component_analysis(pred)
-
-    # num_labels, labels_im = connected_component_analysis(pred_prob)
-    # pred = np.array(pred_prob > 0.5, dtype=np.int32)
-
-    orig_surf['gyralnet_prediction_prob'] = pred_prob
-    orig_surf['gyralnet_prediction'] = pred
-    orig_surf['gyralnet_cc_labels'] = labels_im
+    orig_surf['gyralnet_prediction_reg'] = pred_reg
+    orig_surf['gyralnet_prediction_cla'] = pred_cla
 
     write_vtk(orig_surf, out_file)

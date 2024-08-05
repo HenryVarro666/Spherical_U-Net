@@ -23,7 +23,7 @@ fold = 1  # 1,2,3
 model_name = 'Unet_40k'  # 'Unet_40k', 'Unet_160k'
 up_layer = 'upsample_interpolation'  # 'upsample_interpolation', 'upsample_fixindex'
 in_channels = 2
-out_channels = 1  # by Jiale
+out_channels = 2  # by Jiale
 learning_rate = 0.001
 momentum = 0.99
 # 权重衰减（L2 正则化）系数，用于防止过拟合
@@ -55,15 +55,17 @@ class BrainSphere(torch.utils.data.Dataset):
         # print(feats.shape)
 
         # 提取标签
+        ring_distances = data['ring_distances']
+        label_reg = np.squeeze(ring_distances)
+
         line_mask = data['line_mask']
         label_cla = np.squeeze(line_mask)
 
-        ring_distances = data['ring_distances']
-        label_reg = np.squeeze(ring_distances)
+
         # print(label.shape)
         # label = np.expand_dims(label, axis=0)  # Add a channel dimension if necessary
 
-        return torch.tensor(feats, dtype=torch.float32), torch.tensor(label_cla, dtype=torch.float32), torch.tensor(label_reg, dtype=torch.float32)
+        return torch.tensor(feats, dtype=torch.float32), torch.tensor(label_reg, dtype=torch.float32), torch.tensor(label_cla, dtype=torch.float32)
 
     def __len__(self):
         return len(self.data_files)
@@ -95,7 +97,7 @@ val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size,
 
 if model_name == 'Unet_40k':
     # model = Unet_40k_batch(in_ch=in_channels, out_ch=out_channels)
-    model = Unet_40k_batch_2(in_ch=in_channels, out_ch=out_channels, out_ch2=out_channels)
+    model = Unet_40k_batch_2(in_ch=in_channels, out_ch1=out_channels, out_ch2=out_channels)
 
 elif model_name == 'Unet_160k':
     model = Unet_160k(in_ch=in_channels, out_ch=out_channels)
@@ -108,10 +110,10 @@ model.cuda(cuda)
 # weight = np.array([426, 413]).astype(np.float32) / (426+413)
 
 
-# criterion = nn.MSELoss()
+criterion_reg = nn.MSELoss()
 criterion = nn.CrossEntropyLoss()
 # criterion = nn.BCEWithLogitsLoss()
-criterion_reg = nn.MSELoss()
+# criterion_reg = nn.MSELoss()
 
 # criterion = nn.FocalLoss(gamma=1.0, alpha=weight)
 
@@ -128,7 +130,7 @@ def train_step(data, target_cla, target_reg):
     # target = target.squeeze(1)  # Remove the channel dimension if it exists
 
     # hyper: weight for regression loss
-    hyper = 0.01
+    hyper = 0.1
     loss = criterion(prediction_cla, target_cla) + hyper * criterion_reg(prediction_reg, target_reg)
     optimizer.zero_grad()
     loss.backward()

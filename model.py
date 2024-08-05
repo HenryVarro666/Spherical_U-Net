@@ -186,7 +186,7 @@ class Unet_40k_batch_2(nn.Module):
         self.up4 = up_block(conv_layer, chs[2], chs[1], neigh_orders[0], upconv_top_index_40962, upconv_down_index_40962)
         
         # Regression
-        self.outc = nn.Sequential(
+        self.outc1 = nn.Sequential(
                 # nn.Linear(chs[1], out_ch)
                 nn.Conv1d(chs[1], out_ch, 1)
                 )
@@ -211,7 +211,7 @@ class Unet_40k_batch_2(nn.Module):
         x = self.up3(x, x3)
         x = self.up4(x, x2) # 40962 * 32
         
-        x1 = self.outc(x) # 40962 * 36
+        x1 = self.outc1(x) # 40962 * 36
         x2 = self.outc2(x) # 40962 * 36
         return x1, x2
 
