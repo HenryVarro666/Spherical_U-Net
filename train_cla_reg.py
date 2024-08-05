@@ -95,7 +95,7 @@ val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size,
 
 if model_name == 'Unet_40k':
     # model = Unet_40k_batch(in_ch=in_channels, out_ch=out_channels)
-    model = Unet_40k_batch(in_ch=in_channels, out_ch=out_channels)
+    model = Unet_40k_batch_2(in_ch=in_channels, out_ch=out_channels, out_ch2=out_channels)
 
 elif model_name == 'Unet_160k':
     model = Unet_160k(in_ch=in_channels, out_ch=out_channels)
@@ -124,6 +124,7 @@ def train_step(data, target_cla, target_reg):
     data, target_cla, target_reg = data.cuda(cuda), target_cla.cuda(cuda), target_reg.cuda(cuda)
     prediction_reg, prediction_cla = model(data)
     target_reg = target_reg.view_as(prediction_reg)  # 确保形状一致
+    target_cla = target_cla.view_as(prediction_cla)  # 确保形状一致
     # target = target.squeeze(1)  # Remove the channel dimension if it exists
 
     # hyper: weight for regression loss
@@ -159,19 +160,23 @@ def val_during_training(dataloader):
     # 创建一个零数组 dice_all，用于存储每个批次和每个类别的 Dice 系数。假设有 36 个类别，len(dataloader) 是验证数据集的批次数。
     dice_all = np.zeros((len(dataloader),3))
     # 使用 enumerate 遍历 dataloader 中的每个批次
-    for batch_idx, (data, target) in enumerate(dataloader):
+    # for batch_idx, (data, target_cla, target_reg) in enumerate(dataloader):
+    for batch_idx, (data, target_cla, target_reg) in enumerate(dataloader):
+
         # data.squeeze() 和 target.squeeze()：移除维度为 1 的维度。
         data = data.squeeze()
-        target = target.squeeze()
+        target_cla = target_cla.squeeze()
+        target_reg = target_reg.squeeze()
         # 将数据和标签移动到 GPU 上
-        data, target = data.cuda(cuda), target.cuda(cuda)
+        data, target_cla, target_reg = data.cuda(cuda), target_cla.cuda(cuda), target_reg.cuda(cuda)
         # with torch.no_grad()：在上下文管理器 torch.no_grad() 中进行前向传播，禁用梯度计算，以减少内存使用和加速计算。
         with torch.no_grad():
-            prediction = model(data)
+            prediction_cla, prediction_reg = model(data)
         # 使用 prediction.max(1)[1] 找到预测结果中每个像素的最大值索引，即预测的类别。    
-        prediction = prediction.max(1)[1]
+        prediction_cla = prediction_cla.max(1)[1]
+        prediction_reg = prediction_reg.max(1)[1]
         # 计算当前批次的 Dice 系数，并存储在 dice_all 数组中。
-        dice_all[batch_idx,:] = compute_dice(prediction, target)
+        dice_all[batch_idx,:] = compute_dice(prediction_cla, target_cla)
 
     return dice_all
 
@@ -201,12 +206,15 @@ for epoch in range(100):
 #    dataiter = iter(train_dataloader)
 #    data, target = dataiter.next()
     
-    # 遍历训练集的每个批次
-    for batch_idx, (data, target) in enumerate(train_dataloader):
+    for batch_idx, (data, target_cla, target_reg) in enumerate(train_dataloader):
+        # data.squeeze() 和 target.squeeze()：移除维度为 1 的维度。
         data = data.squeeze()
-        target = target.squeeze()
+        target_cla = target_cla.squeeze()
+        target_reg = target_reg.squeeze()
+        # 将数据和标签移动到 GPU 上
+        data, target_cla, target_reg = data.cuda(cuda), target_cla.cuda(cuda), target_reg.cuda(cuda)
         # 调用 train_step 函数进行前向传播、计算损失、反向传播和参数更新
-        loss = train_step(data, target)
+        loss = train_step(data, target_cla, target_reg)
 
         # 打印当前批次的损失
         print("[{}:{}/{}]  LOSS={:.4}".format(epoch, 
