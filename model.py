@@ -153,7 +153,7 @@ class Unet_40k_batch_2(nn.Module):
     """Define the Spherical UNet structure
 
     """    
-    def __init__(self, in_ch, out_ch, out_ch2):
+    def __init__(self, in_ch, out_ch1, out_ch2):
         """ Initialize the Spherical UNet.
 
         Parameters:
@@ -188,7 +188,7 @@ class Unet_40k_batch_2(nn.Module):
         # Regression
         self.outc1 = nn.Sequential(
                 # nn.Linear(chs[1], out_ch)
-                nn.Conv1d(chs[1], out_ch, 1)
+                nn.Conv1d(chs[1], out_ch1, 1)
                 )
         
         # Classification
