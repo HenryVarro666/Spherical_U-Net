@@ -2,7 +2,7 @@
 Author: HenryVarro666 1504517223@qq.com
 Date: 2024-08-05 09:22:58
 LastEditors: HenryVarro666 1504517223@qq.com
-LastEditTime: 2024-08-05 11:02:44
+LastEditTime: 2024-08-05 13:49:46
 FilePath: \Spherical_U-Net\predict_cla_reg.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -25,9 +25,9 @@ def inference(curv, sulc, model, device):
     feats = feats / feat_max
     with torch.no_grad():
         feats = feats.unsqueeze(0)  # Add batch dimension
-        prediction_reg, predict_cla = model(feats)
-        # prediction = sigmoid(prediction)
-    return prediction_reg.cpu().numpy(), predict_cla.cpu().numpy()
+        predict_reg, predict_cla = model(feats)
+        predict_cla = sigmoid(predict_cla)
+    return predict_reg.cpu().numpy(), predict_cla.cpu().numpy()
 
 # def connected_component_analysis(pred):
 #     # 将预测结果转换为二值图像
@@ -68,7 +68,7 @@ if __name__ == "__main__":
         out_file = in_file.replace('.vtk', '.parc.vtk')
     
     model = Unet_40k_batch_2(2, 1, 1) if level == '7' else Unet_160k(2, 1)
-    model_path = f'trained_models_cla_reg/Unet_{"40k_1_final.pkl" if level == "7" else "160k_curv_sulc.pkl"}'
+    model_path = f'trained_models_cla_reg/Unet_{"40k_batch_2_1_final.pkl" if level == "7" else "160k_curv_sulc.pkl"}'
     n_vertices = 40962 if level == '7' else 163842
     
     model.to(device)
