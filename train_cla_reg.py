@@ -25,7 +25,7 @@ up_layer = 'upsample_interpolation'  # 'upsample_interpolation', 'upsample_fixin
 in_channels = 2
 # out_channels = 2  # by Jiale
 out_ch1 = 1
-out_ch2 = 1
+out_ch2 = 3
 learning_rate = 0.001
 momentum = 0.99
 # 权重衰减（L2 正则化）系数，用于防止过拟合
@@ -65,7 +65,7 @@ class BrainSphere(torch.utils.data.Dataset):
         # print(label.shape)
         # label = np.expand_dims(label, axis=0)  # Add a channel dimension if necessary
 
-        return torch.tensor(feats, dtype=torch.float32), torch.tensor(label_reg, dtype=torch.float32), torch.tensor(label_cla, dtype=torch.float32)
+        return torch.tensor(feats, dtype=torch.float32), torch.tensor(label_reg, dtype=torch.float32), torch.tensor(label_cla, dtype=torch.long)
 
     def __len__(self):
         return len(self.data_files)
@@ -126,7 +126,13 @@ def train_step(data, target_reg, target_cla):
     data, target_reg, target_cla = data.cuda(cuda), target_reg.cuda(cuda), target_cla.cuda(cuda)
     prediction_reg, prediction_cla = model(data)
     target_reg = target_reg.view_as(prediction_reg)  # 确保形状一致
-    target_cla = target_cla.view_as(prediction_cla)  # 确保形状一致
+    # target_cla = target_cla.view_as(prediction_cla) 
+
+    # 在训练过程中，你使用了 torch.argmax 来处理分类输出，这会将输出转换为整数索引。然而，对于交叉熵损失函数（nn.CrossEntropyLoss），输入的预测值应是浮点数概率分布，而不是类标签
+    # 只有在计算 Dice 系数时才需要 torch.argmax，而在计算损失时，应该使用原始的预测值。
+    # prediction_cla = torch.argmax(prediction_cla, dim=1)
+    
+    # prediction_cla = prediction_cla.max(1)[1]
 
     # hyper: weight for regression loss
     hyper = 0.1
@@ -175,12 +181,13 @@ def val_during_training(dataloader):
         with torch.no_grad():
             prediction_reg, prediction_cla = model(data)
 
-        # 调整 target_reg 的形状以匹配 prediction_reg
-        if prediction_reg.shape != target_reg.shape:
-            target_reg = target_reg.view_as(prediction_reg)
+        # # 调整 target_reg 的形状以匹配 prediction_reg
+        # if prediction_reg.shape != target_reg.shape:
+        #     target_reg = target_reg.view_as(prediction_reg)
         
-        # 使用 prediction.max(1)[1] 找到预测结果中每个像素的最大值索引，即预测的类别。    
-        prediction_cla = prediction_cla.max(1)[1]
+        # # 使用 prediction.max(1)[1] 找到预测结果中每个像素的最大值索引，即预测的类别。    
+        # prediction_cla = prediction_cla.max(1)[1]
+        prediction_cla = torch.argmax(prediction_cla, dim=1)
 
         # 计算当前批次的 Dice 系数，并存储在 dice_all 列表中。
         dice = compute_dice(prediction_cla, target_cla)
@@ -235,7 +242,7 @@ for epoch in range(100):
         target_reg = target_reg.squeeze()
         target_cla = target_cla.squeeze()
         data, target_reg, target_cla = data.cuda(cuda), target_reg.cuda(cuda), target_cla.cuda(cuda)
-        loss = train_step(data, target_cla, target_reg)
+        loss = train_step(data, target_reg, target_cla)
 
         # 打印当前批次的损失
         print("[{}:{}/{}]  LOSS={:.4}".format(epoch, 
@@ -255,6 +262,7 @@ for epoch in range(100):
 
     # 如果最近五个周期的 Dice 系数的标准差小于等于0.00001，保存模型并结束训练
     if epoch >= min_epochs and np.std(np.array(train_dice)) <= 0.00001:
+        # print(f"Training stopped early at epoch {epoch} due to low standard deviation in Dice scores.")
         torch.save(model.state_dict(), os.path.join(output_dir, model_name+'_'+str(fold)+"_final.pkl"))
         break
     # 否则，每个周期结束后保存一次模型

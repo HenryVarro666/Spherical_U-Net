@@ -2,7 +2,7 @@
 Author: HenryVarro666 1504517223@qq.com
 Date: 2024-08-05 09:22:58
 LastEditors: HenryVarro666 1504517223@qq.com
-LastEditTime: 2024-08-05 13:49:46
+LastEditTime: 2024-08-05 15:01:15
 FilePath: \Spherical_U-Net\predict_cla_reg.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -26,7 +26,7 @@ def inference(curv, sulc, model, device):
     with torch.no_grad():
         feats = feats.unsqueeze(0)  # Add batch dimension
         predict_reg, predict_cla = model(feats)
-        predict_cla = sigmoid(predict_cla)
+        predict_cla = torch.argmax(predict_cla, dim=1)
     return predict_reg.cpu().numpy(), predict_cla.cpu().numpy()
 
 # def connected_component_analysis(pred):
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     if out_file == '[input].parc.vtk':
         out_file = in_file.replace('.vtk', '.parc.vtk')
     
-    model = Unet_40k_batch_2(2, 1, 1) if level == '7' else Unet_160k(2, 1)
+    model = Unet_40k_batch_2(2, 1, 3) if level == '7' else Unet_160k(2, 1)
     model_path = f'trained_models_cla_reg/Unet_{"40k_batch_2_1_final.pkl" if level == "7" else "160k_curv_sulc.pkl"}'
     n_vertices = 40962 if level == '7' else 163842
     
