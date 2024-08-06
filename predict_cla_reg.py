@@ -2,7 +2,7 @@
 Author: HenryVarro666 1504517223@qq.com
 Date: 2024-08-05 09:22:58
 LastEditors: HenryVarro666 1504517223@qq.com
-LastEditTime: 2024-08-05 15:01:15
+LastEditTime: 2024-08-05 17:26:13
 FilePath: \Spherical_U-Net\predict_cla_reg.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -95,7 +95,14 @@ if __name__ == "__main__":
     pred_reg = pred_reg.squeeze()  # (N, 1) -> (N)
     pred_cla = pred_cla.squeeze()  # (N, 1) -> (N)
 
-    orig_surf['gyralnet_prediction_reg'] = pred_reg
+    threshold = np.percentile(pred_reg, 20)
+
+    binary_pred_reg = np.zeros_like(pred_reg)
+
+    binary_pred_reg[pred_reg <= threshold] = 1
+
+    orig_surf['gyralnet_prediction_reg_20%'] = binary_pred_reg
     orig_surf['gyralnet_prediction_cla'] = pred_cla
+    orig_surf['gyralnet_prediction_reg'] = pred_reg
 
     write_vtk(orig_surf, out_file)
